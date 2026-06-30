@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { updateSpot } from "../services/spotService";
 
-function EditSpot({ spots, setSpots }) {
+function EditSpot({ spots }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -16,14 +17,9 @@ function EditSpot({ spots, setSpots }) {
 
   const canSave = name.trim() !== "" && place.trim() !== "";
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!canSave) return;
-
-    setSpots((prev) =>
-      prev.map((s) =>
-        s.id === spot.id ? { ...s, title: name, place, category, url } : s
-      )
-    );
+    await updateSpot(spot.id, { title: name, place, category, url });
     navigate("/");
   };
 

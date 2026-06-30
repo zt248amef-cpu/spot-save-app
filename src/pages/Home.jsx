@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SpotCard from "../components/SpotCard";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { deleteSpot, toggleFavorite } from "../services/spotService";
+// TODO: Googleログイン復元時は authService の signInWithGoogle / signOutUser を再インポートする
 
-function Home({ spots, setSpots }) {
+function Home({ spots, user }) {
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("すべて");
+  const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
+
+  useEffect(() => {
+    if (!showSaved) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const timer = setTimeout(() => setShowSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showSaved]);
 
   const categories = ["すべて", "⭐ お気に入り", "☕ カフェ", "🍜 グルメ", "🧖 サウナ", "❤️ デート", "✈️ 旅行"];
 
@@ -26,19 +37,25 @@ function Home({ spots, setSpots }) {
       return matchesQuery && matchesCategory;
     });
 
+  const handleDelete = (id) => deleteSpot(id);
+
   const handleToggleFavorite = (id) => {
-    setSpots((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, favorite: !s.favorite } : s))
-    );
+    const spot = spots.find((s) => s.id === id);
+    if (spot) toggleFavorite(id, !spot.favorite);
   };
+
+  // TODO: Googleログイン復元時は !user の場合にログイン画面を表示する
+  // if (!user) { return (<> <button onClick={signInWithGoogle}>ログイン</button> </>) }
 
   return (
     <>
+      {showSaved && (
+        <div className="savedToast">✅ 保存しました</div>
+      )}
+
       <h1 className="title">📍 SpotSave</h1>
 
-      <p className="subtitle">
-        行きたい場所を、見つけやすく、忘れない。
-      </p>
+      {/* TODO: Googleログイン復元時は user.displayName とログアウトボタンを復元する */}
 
       <input
         className="search"
@@ -67,7 +84,7 @@ function Home({ spots, setSpots }) {
           <SpotCard
             key={spot.id}
             spot={spot}
-            onDelete={(id) => setSpots((prev) => prev.filter((s) => s.id !== id))}
+            onDelete={handleDelete}
             onToggleFavorite={handleToggleFavorite}
           />
         ))

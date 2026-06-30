@@ -38,7 +38,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
 
   return (
     <div className="card" onClick={handleCardClick}>
-      <img src={spot.image || "https://picsum.photos/200"} alt={spot.title} />
+      <img src={spot.image || "https://placehold.co/200x200?text=No+Image"} alt={spot.title} />
 
       <div className="info">
         <h3>{spot.title}</h3>

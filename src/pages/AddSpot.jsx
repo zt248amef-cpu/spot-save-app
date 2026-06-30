@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { parseSpotFromUrl } from "../services/parserService";
+import { addSpot } from "../services/spotService";
 
-function AddSpot({ setSpots }) {
+function AddSpot({ user }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [place, setPlace] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
   const [url, setUrl] = useState("");
   const [image, setImage] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -19,40 +18,29 @@ function AddSpot({ setSpots }) {
     reader.readAsDataURL(file);
   };
 
-  const handleAnalyze = async () => {
+  const handleCheckUrl = () => {
     if (!url.trim()) return;
-    setIsAnalyzing(true);
-    const result = await parseSpotFromUrl(url);
-    setName(result.title);
-    setPlace(result.place);
-    setCategory(result.category);
-    setImage(result.image);
-    setIsAnalyzing(false);
+    const fullUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+    window.open(fullUrl, "_blank");
   };
 
-  const handleSave = () => {
-    if (!name.trim() || !place.trim()) return;
+  const handleSave = async () => {
+    if (!user || !name.trim() || !place.trim()) return;
 
-    const newSpot = {
-      id: Date.now(),
-      title: name,
-      place: place,
-      category: category,
-      url: url,
-      image: image,
-      createdAt: new Date().toISOString(),
-    };
-
-    setSpots((prev) => [...prev, newSpot]);
-    setName("");
-    setPlace("");
-    setCategory("☕ カフェ");
-    setUrl("");
-    setImage("");
-    navigate("/");
+    try {
+      await addSpot(user.uid, { title: name, place, category, url, image });
+      setName("");
+      setPlace("");
+      setCategory("☕ カフェ");
+      setUrl("");
+      setImage("");
+      navigate("/", { state: { saved: true }, replace: true });
+    } catch (e) {
+      console.error("保存に失敗しました:", e);
+    }
   };
 
-  const canSave = name.trim() !== "" && place.trim() !== "";
+  const canSave = !!user && name.trim() !== "" && place.trim() !== "";
 
   return (
     <>
@@ -75,10 +63,10 @@ function AddSpot({ setSpots }) {
         />
         <button
           className="analyzeButton"
-          onClick={handleAnalyze}
-          disabled={!url.trim() || isAnalyzing}
+          onClick={handleCheckUrl}
+          disabled={!url.trim()}
         >
-          {isAnalyzing ? "解析中..." : "解析"}
+          URL確認
         </button>
       </div>
 
