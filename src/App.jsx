@@ -7,12 +7,22 @@ import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
 import { subscribeToSpots } from "./services/spotService";
 
-// TODO: Googleログイン復元時は authService の subscribeToAuthState に置き換える
-const DEMO_USER = { uid: "demo-user" };
+function getOrCreateUserId() {
+  const key = "spotsaveUserId";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+// TODO: Googleログイン復元時は getOrCreateUserId() を authService の subscribeToAuthState に置き換える
+const USER_ID = getOrCreateUserId();
 
 function App() {
   const [spots, setSpots] = useState([]);
-  const user = DEMO_USER;
+  const user = { uid: USER_ID };
 
   useEffect(() => {
     const unsubscribe = subscribeToSpots(
