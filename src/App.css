@@ -321,6 +321,51 @@ body {
   cursor: pointer;
 }
 
+.linkButton {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mapSection {
+  margin-top: 28px;
+  margin-bottom: 16px;
+}
+
+.mapLabel {
+  font-weight: bold;
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.mapWrapper {
+  height: 260px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.mapHint {
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.latLngRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.latLngRow .input {
+  margin-bottom: 0;
+}
+
+/* leaflet の z-index をphone内に収める */
+.leaflet-pane { z-index: 1 !important; }
+.leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+
 .savedToast {
   background: #7C4DFF;
   color: white;

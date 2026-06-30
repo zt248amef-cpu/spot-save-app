@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import SpotCard from "../components/SpotCard";
 import { Link, useLocation } from "react-router-dom";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
+import MapView from "../components/MapView";
 // TODO: Googleログイン復元時は authService の signInWithGoogle / signOutUser を再インポートする
 
 function Home({ spots, user }) {
@@ -89,6 +90,8 @@ function Home({ spots, user }) {
           />
         ))
       )}
+
+      <MapView spots={spots} />
 
       <Link to="/add" className="saveButton linkButton">
         ＋ 保存する
