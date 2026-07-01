@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run dev -- --host 0.0.0.0)",
+      "Bash(npm run build)",
+      "Bash(git status)",
+      "Bash(git diff --stat)"
+    ]
+  }
+}

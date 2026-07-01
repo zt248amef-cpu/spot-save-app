@@ -32,6 +32,16 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Claude Code 設定
+
+このリポジトリには Claude Code 向けの補助設定を追加しています。
+
+- [CLAUDE.md](CLAUDE.md) : プロジェクト固有の開発コンテキスト
+- [.claude/settings.json](.claude/settings.json) : 代表的なコマンド許可設定
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) : React/Vite のビルド確認を行う GitHub Actions
+
+Claude Code で作業する際は、まずこのプロジェクトの構成と開発ルールを参照してください。
+
 ## 環境変数
 
 `.env.example` をコピーして `.env.local` を作成し、Firebase コンソールの値を入力してください。

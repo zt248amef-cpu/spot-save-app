@@ -3,7 +3,7 @@ import SpotCard from "../components/SpotCard";
 import { Link, useLocation } from "react-router-dom";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
-// TODO: Googleログイン復元時は authService の signInWithGoogle / signOutUser を再インポートする
+import { signInWithGoogle, signOutUser } from "../services/authService";
 
 function Home({ spots, user }) {
   const location = useLocation();
@@ -45,8 +45,19 @@ function Home({ spots, user }) {
     if (spot) toggleFavorite(id, !spot.favorite);
   };
 
-  // TODO: Googleログイン復元時は !user の場合にログイン画面を表示する
-  // if (!user) { return (<> <button onClick={signInWithGoogle}>ログイン</button> </>) }
+  // ---- UUID方式に戻す場合はここをコメントアウト ----
+  if (!user) {
+    return (
+      <>
+        <h1 className="title">📍 SpotSave</h1>
+        <p className="subtitle">行きたい場所を、見つけやすく、忘れない。</p>
+        <button className="loginButton" onClick={signInWithGoogle}>
+          🔑 Googleでログイン
+        </button>
+      </>
+    );
+  }
+  // --------------------------------------------------
 
   return (
     <>
@@ -56,7 +67,12 @@ function Home({ spots, user }) {
 
       <h1 className="title">📍 SpotSave</h1>
 
-      {/* TODO: Googleログイン復元時は user.displayName とログアウトボタンを復元する */}
+      {/* ---- UUID方式に戻す場合はここをコメントアウト ---- */}
+      <div className="userBar">
+        <span className="userName">{user.displayName}</span>
+        <button className="logoutButton" onClick={signOutUser}>ログアウト</button>
+      </div>
+      {/* ------------------------------------------------- */}
 
       <input
         className="search"
