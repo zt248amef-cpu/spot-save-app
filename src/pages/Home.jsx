@@ -31,7 +31,9 @@ function Home({ spots, user, loading }) {
       const matchesQuery =
         spot.title.toLowerCase().includes(q) ||
         spot.place.toLowerCase().includes(q) ||
-        spot.category.toLowerCase().includes(q);
+        spot.category.toLowerCase().includes(q) ||
+        (spot.placeName ?? "").toLowerCase().includes(q) ||
+        (spot.area ?? "").toLowerCase().includes(q);
       const matchesCategory =
         selectedCategory === "すべて" ||
         (selectedCategory === "⭐ お気に入り" && spot.favorite) ||
