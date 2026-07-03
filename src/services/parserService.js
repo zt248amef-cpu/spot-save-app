@@ -1,7 +1,7 @@
 // ── AI実装の差し替えはこの関数だけ変更する ──────────────────────────────
 // 将来は OpenAI / Gemini 等の API 呼び出しに置き換える
 // 戻り値の型: { title, place, category, image }
-async function callAI(url) {
+async function callAI(_url) {
   // ダミー実装: 2秒後に固定データを返す
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

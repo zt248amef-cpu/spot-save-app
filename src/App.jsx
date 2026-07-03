@@ -20,6 +20,7 @@ import { subscribeToAuthState } from "./services/authService";
 
 function App() {
   const [spots, setSpots] = useState([]);
+  const [spotsLoading, setSpotsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -35,12 +36,20 @@ function App() {
   useEffect(() => {
     if (!user) {
       setSpots([]);
+      setSpotsLoading(false);
       return;
     }
+    setSpotsLoading(true);
     const unsubscribe = subscribeToSpots(
       user.uid,
-      setSpots,
-      (error) => console.error("Firestore 接続失敗:", error.code)
+      (data) => {
+        setSpots(data);
+        setSpotsLoading(false);
+      },
+      (error) => {
+        console.error("Firestore 接続失敗:", error.code);
+        setSpotsLoading(false);
+      }
     );
     return unsubscribe;
   }, [user]);
@@ -62,7 +71,7 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<Home spots={spots} user={user} />}
+              element={<Home spots={spots} user={user} loading={spotsLoading} />}
             />
             <Route
               path="/add"

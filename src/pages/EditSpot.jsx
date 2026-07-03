@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { updateSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
+import { isValidUrl, normalizeUrl } from "../utils/urlUtils";
 
 function EditSpot({ spots }) {
   const { id } = useParams();
@@ -17,13 +18,23 @@ function EditSpot({ spots }) {
   const [lat, setLat] = useState(spot?.lat != null ? String(spot.lat) : "");
   const [lng, setLng] = useState(spot?.lng != null ? String(spot.lng) : "");
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   if (!spot) return <p style={{ padding: 24 }}>スポットが見つかりません</p>;
 
-  const canSave = name.trim() !== "" && place.trim() !== "" && !saving;
+  const canSave = name.trim() !== "" && place.trim() !== "" && url.trim() !== "" && !saving;
 
   const handleUpdate = async () => {
-    if (!canSave) return;
+    if (name.trim() === "" || place.trim() === "" || saving) return;
+    if (!url.trim()) {
+      setErrorMessage("URLを入力してください");
+      return;
+    }
+    if (!isValidUrl(url)) {
+      setErrorMessage("http または https で始まる正しいURLを入力してください");
+      return;
+    }
+    setErrorMessage("");
     setSaving(true);
     try {
       let resolvedLat = lat.trim() !== "" ? parseFloat(lat) : null;
@@ -32,10 +43,19 @@ function EditSpot({ spots }) {
         const geo = await geocodePlace(place);
         if (geo) { resolvedLat = geo.lat; resolvedLng = geo.lng; }
       }
-      await updateSpot(spot.id, { title: name, place, category, url, memo, lat: resolvedLat, lng: resolvedLng });
+      await updateSpot(spot.id, {
+        title: name,
+        place,
+        category,
+        url: normalizeUrl(url),
+        memo,
+        lat: resolvedLat,
+        lng: resolvedLng,
+      });
       navigate("/");
     } catch (e) {
       console.error("更新に失敗しました:", e);
+      setErrorMessage("更新に失敗しました。もう一度お試しください");
     } finally {
       setSaving(false);
     }
@@ -87,6 +107,8 @@ function EditSpot({ spots }) {
         value={url}
         onChange={(e) => setUrl(e.target.value)}
       />
+
+      {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
 
       <textarea
         className="input"

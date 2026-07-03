@@ -1,13 +1,30 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { detectSns, normalizeUrl } from "../utils/urlUtils";
+
+function formatSavedAt(createdAt) {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function SpotCard({ spot, onDelete, onToggleFavorite }) {
   const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const sns = detectSns(spot.url);
+  const savedAt = formatSavedAt(spot.createdAt);
 
   const handleCardClick = () => {
     if (!spot.url?.trim()) return;
-    const url = spot.url.trim();
-    const fullUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    window.open(fullUrl, "_blank");
+    window.open(normalizeUrl(spot.url), "_blank");
   };
 
   const handleEdit = (e) => {
@@ -15,10 +32,14 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
     navigate(`/edit/${spot.id}`);
   };
 
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation();
-    if (window.confirm("本当に削除しますか？")) {
-      onDelete(spot.id);
+    if (deleting || !window.confirm("本当に削除しますか？")) return;
+    setDeleting(true);
+    try {
+      await onDelete(spot.id);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -31,9 +52,15 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
     );
   };
 
-  const handleFavorite = (e) => {
+  const handleFavorite = async (e) => {
     e.stopPropagation();
-    onToggleFavorite(spot.id);
+    if (togglingFavorite) return;
+    setTogglingFavorite(true);
+    try {
+      await onToggleFavorite(spot.id);
+    } finally {
+      setTogglingFavorite(false);
+    }
   };
 
   return (
@@ -44,11 +71,18 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
         <h3>{spot.title}</h3>
         <p>📍 {spot.place}</p>
         <span>{spot.category}</span>
+        {spot.url && (
+          <span className="snsBadge">
+            {sns.icon} {sns.label}
+          </span>
+        )}
+        {savedAt && <p className="savedAt">🕒 {savedAt}</p>}
       </div>
 
       <button
         className={`favoriteButton${spot.favorite ? " active" : ""}`}
         onClick={handleFavorite}
+        disabled={togglingFavorite}
       >
         ⭐
       </button>
@@ -61,7 +95,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
         ✏️
       </button>
 
-      <button className="deleteButton" onClick={handleDelete}>
+      <button className="deleteButton" onClick={handleDelete} disabled={deleting}>
         🗑
       </button>
     </div>

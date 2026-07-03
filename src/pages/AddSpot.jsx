@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
+import { isValidUrl, normalizeUrl } from "../utils/urlUtils";
 
 function AddSpot({ user }) {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function AddSpot({ user }) {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -25,12 +27,24 @@ function AddSpot({ user }) {
 
   const handleCheckUrl = () => {
     if (!url.trim()) return;
-    const fullUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
-    window.open(fullUrl, "_blank");
+    window.open(normalizeUrl(url), "_blank");
   };
 
   const handleSave = async () => {
-    if (!user || !name.trim() || !place.trim() || saving) return;
+    if (!user || saving) return;
+    if (!url.trim()) {
+      setErrorMessage("URLを入力してください");
+      return;
+    }
+    if (!isValidUrl(url)) {
+      setErrorMessage("http または https で始まる正しいURLを入力してください");
+      return;
+    }
+    if (!name.trim() || !place.trim()) {
+      setErrorMessage("店名と場所を入力してください");
+      return;
+    }
+    setErrorMessage("");
     setSaving(true);
     try {
       let resolvedLat = lat.trim() !== "" ? parseFloat(lat) : null;
@@ -39,7 +53,16 @@ function AddSpot({ user }) {
         const geo = await geocodePlace(place);
         if (geo) { resolvedLat = geo.lat; resolvedLng = geo.lng; }
       }
-      await addSpot(user.uid, { title: name, place, category, url, image, memo, lat: resolvedLat, lng: resolvedLng });
+      await addSpot(user.uid, {
+        title: name,
+        place,
+        category,
+        url: normalizeUrl(url),
+        image,
+        memo,
+        lat: resolvedLat,
+        lng: resolvedLng,
+      });
       setName("");
       setPlace("");
       setCategory("☕ カフェ");
@@ -51,12 +74,13 @@ function AddSpot({ user }) {
       navigate("/", { state: { saved: true }, replace: true });
     } catch (e) {
       console.error("保存に失敗しました:", e);
+      setErrorMessage("保存に失敗しました。もう一度お試しください");
     } finally {
       setSaving(false);
     }
   };
 
-  const canSave = !!user && name.trim() !== "" && place.trim() !== "" && !saving;
+  const canSave = !!user && name.trim() !== "" && place.trim() !== "" && url.trim() !== "" && !saving;
 
   return (
     <>
@@ -85,6 +109,8 @@ function AddSpot({ user }) {
           URL確認
         </button>
       </div>
+
+      {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
 
       <input
         className="input"

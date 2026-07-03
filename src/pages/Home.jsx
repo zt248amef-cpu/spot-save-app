@@ -5,11 +5,12 @@ import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
 import { signInWithGoogle, signOutUser } from "../services/authService";
 
-function Home({ spots, user }) {
+function Home({ spots, user, loading }) {
   const location = useLocation();
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("すべて");
   const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!showSaved) return;
@@ -38,11 +39,24 @@ function Home({ spots, user }) {
       return matchesQuery && matchesCategory;
     });
 
-  const handleDelete = (id) => deleteSpot(id);
+  const handleDelete = async (id) => {
+    try {
+      await deleteSpot(id);
+    } catch (e) {
+      console.error("削除に失敗しました:", e);
+      setErrorMessage("削除に失敗しました。もう一度お試しください");
+    }
+  };
 
-  const handleToggleFavorite = (id) => {
+  const handleToggleFavorite = async (id) => {
     const spot = spots.find((s) => s.id === id);
-    if (spot) toggleFavorite(id, !spot.favorite);
+    if (!spot) return;
+    try {
+      await toggleFavorite(id, !spot.favorite);
+    } catch (e) {
+      console.error("お気に入りの更新に失敗しました:", e);
+      setErrorMessage("お気に入りの更新に失敗しました");
+    }
   };
 
   // ---- UUID方式に戻す場合はここをコメントアウト ----
@@ -63,6 +77,12 @@ function Home({ spots, user }) {
     <>
       {showSaved && (
         <div className="savedToast">✅ 保存しました</div>
+      )}
+
+      {errorMessage && (
+        <div className="errorMessage" onClick={() => setErrorMessage("")}>
+          ⚠️ {errorMessage}
+        </div>
       )}
 
       <h1 className="title">📍 SpotSave</h1>
@@ -94,8 +114,24 @@ function Home({ spots, user }) {
         ))}
       </div>
 
-      {filteredSpots.length === 0 ? (
-        <p className="emptyMessage">まだ保存がありません</p>
+      {loading ? (
+        <div className="skeletonList">
+          {[0, 1, 2].map((i) => (
+            <div className="skeletonCard" key={i} />
+          ))}
+        </div>
+      ) : filteredSpots.length === 0 ? (
+        spots.length === 0 ? (
+          <div className="emptyState">
+            <p className="emptyStateIcon">📍</p>
+            <p className="emptyStateTitle">まだ保存がありません</p>
+            <p className="emptyStateSubtitle">
+              気になる場所のURLを貼り付けて保存してみましょう
+            </p>
+          </div>
+        ) : (
+          <p className="emptyMessage">条件に一致するスポットがありません</p>
+        )
       ) : (
         filteredSpots.map((spot) => (
           <SpotCard
