@@ -200,6 +200,88 @@ body {
   margin-top: 6px !important;
   margin-bottom: 0 !important;
 }
+
+.placeNameText,
+.areaText {
+  color: #555 !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+  margin-bottom: 0 !important;
+}
+
+.urlText {
+  color: #999 !important;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.sectionLabel {
+  color: #999;
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.previewError {
+  color: #92700c;
+  background: #fff7e0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.previewBox {
+  background: #f2f2f2;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.previewThumbnail {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.previewAuthor {
+  color: #666;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.previewCaption {
+  color: #333;
+  font-size: 14px;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.previewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.previewApplyButton {
+  border: none;
+  background: #ede9fe;
+  color: #7C4DFF;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
 .backButton {
   border: none;
   background: #f2f2f2;
@@ -240,6 +322,10 @@ body {
 .analyzeButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.urlWrapper button + button {
+  margin-top: 8px;
 }
 
 .imageUpload {

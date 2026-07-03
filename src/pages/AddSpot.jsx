@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
-import { isValidUrl, normalizeUrl } from "../utils/urlUtils";
+import { fetchOEmbedPreview } from "../services/oembedService";
+import { isValidUrl, normalizeUrl, resolveExtractionStatus } from "../utils/urlUtils";
 
 function AddSpot({ user }) {
   const navigate = useNavigate();
@@ -10,12 +11,17 @@ function AddSpot({ user }) {
   const [place, setPlace] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
   const [url, setUrl] = useState("");
+  const [placeName, setPlaceName] = useState("");
+  const [area, setArea] = useState("");
   const [image, setImage] = useState("");
   const [memo, setMemo] = useState("");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -28,6 +34,46 @@ function AddSpot({ user }) {
   const handleCheckUrl = () => {
     if (!url.trim()) return;
     window.open(normalizeUrl(url), "_blank");
+  };
+
+  const handleUrlChange = (e) => {
+    setUrl(e.target.value);
+    setPreview(null);
+    setPreviewError("");
+  };
+
+  const handleFetchPreview = async () => {
+    if (!url.trim() || previewLoading) return;
+    if (!isValidUrl(url)) {
+      setPreviewError("http または https で始まる正しいURLを入力してください");
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewError("");
+    setPreview(null);
+    try {
+      const result = await fetchOEmbedPreview(url);
+      if (!result) {
+        setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
+      } else {
+        setPreview(result);
+      }
+    } catch (e) {
+      console.error("投稿情報の取得に失敗しました:", e);
+      setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleApplyPreviewCaption = () => {
+    if (!preview?.caption) return;
+    setPlaceName(preview.caption.slice(0, 100));
+  };
+
+  const handleApplyPreviewThumbnail = () => {
+    if (!preview?.thumbnailUrl) return;
+    setImage(preview.thumbnailUrl);
   };
 
   const handleSave = async () => {
@@ -58,6 +104,9 @@ function AddSpot({ user }) {
         place,
         category,
         url: normalizeUrl(url),
+        placeName,
+        area,
+        extractionStatus: resolveExtractionStatus(placeName, area),
         image,
         memo,
         lat: resolvedLat,
@@ -67,6 +116,8 @@ function AddSpot({ user }) {
       setPlace("");
       setCategory("☕ カフェ");
       setUrl("");
+      setPlaceName("");
+      setArea("");
       setImage("");
       setMemo("");
       setLat("");
@@ -99,7 +150,7 @@ function AddSpot({ user }) {
           className="urlBox"
           placeholder="https://www.tiktok.com/..."
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={handleUrlChange}
         />
         <button
           className="analyzeButton"
@@ -108,7 +159,38 @@ function AddSpot({ user }) {
         >
           URL確認
         </button>
+        <button
+          className="analyzeButton"
+          onClick={handleFetchPreview}
+          disabled={!url.trim() || previewLoading}
+        >
+          {previewLoading ? "取得中..." : "📋 投稿情報を取得（TikTok/YouTube/X対応）"}
+        </button>
       </div>
+
+      {previewError && <p className="previewError">ℹ️ {previewError}</p>}
+
+      {preview && (
+        <div className="previewBox">
+          {preview.thumbnailUrl && (
+            <img className="previewThumbnail" src={preview.thumbnailUrl} alt="投稿サムネイル" />
+          )}
+          {preview.authorName && <p className="previewAuthor">👤 {preview.authorName}</p>}
+          {preview.caption && <p className="previewCaption">📝 {preview.caption}</p>}
+          <div className="previewActions">
+            {preview.caption && (
+              <button type="button" className="previewApplyButton" onClick={handleApplyPreviewCaption}>
+                ↳ 店名・場所名欄にコピー
+              </button>
+            )}
+            {preview.thumbnailUrl && (
+              <button type="button" className="previewApplyButton" onClick={handleApplyPreviewThumbnail}>
+                🖼️ サムネイルを使う
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
 
@@ -139,6 +221,24 @@ function AddSpot({ user }) {
         <option>❤️ デート</option>
         <option>✈️ 旅行</option>
       </select>
+
+      <p className="sectionLabel">🔍 場所情報の補助入力（任意）</p>
+
+      <input
+        className="input"
+        type="text"
+        placeholder="店名・場所名（任意）"
+        value={placeName}
+        onChange={(e) => setPlaceName(e.target.value)}
+      />
+
+      <input
+        className="input"
+        type="text"
+        placeholder="エリア（任意）"
+        value={area}
+        onChange={(e) => setArea(e.target.value)}
+      />
 
       <textarea
         className="input"

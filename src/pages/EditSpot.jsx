@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { updateSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
-import { isValidUrl, normalizeUrl } from "../utils/urlUtils";
+import { fetchOEmbedPreview } from "../services/oembedService";
+import { isValidUrl, normalizeUrl, resolveExtractionStatus } from "../utils/urlUtils";
 
 function EditSpot({ spots }) {
   const { id } = useParams();
@@ -14,15 +15,55 @@ function EditSpot({ spots }) {
   const [place, setPlace] = useState(spot?.place ?? "");
   const [category, setCategory] = useState(spot?.category ?? "☕ カフェ");
   const [url, setUrl] = useState(spot?.url ?? "");
+  const [placeName, setPlaceName] = useState(spot?.placeName ?? "");
+  const [area, setArea] = useState(spot?.area ?? "");
   const [memo, setMemo] = useState(spot?.memo ?? "");
   const [lat, setLat] = useState(spot?.lat != null ? String(spot.lat) : "");
   const [lng, setLng] = useState(spot?.lng != null ? String(spot.lng) : "");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   if (!spot) return <p style={{ padding: 24 }}>スポットが見つかりません</p>;
 
   const canSave = name.trim() !== "" && place.trim() !== "" && url.trim() !== "" && !saving;
+
+  const handleUrlChange = (e) => {
+    setUrl(e.target.value);
+    setPreview(null);
+    setPreviewError("");
+  };
+
+  const handleFetchPreview = async () => {
+    if (!url.trim() || previewLoading) return;
+    if (!isValidUrl(url)) {
+      setPreviewError("http または https で始まる正しいURLを入力してください");
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewError("");
+    setPreview(null);
+    try {
+      const result = await fetchOEmbedPreview(url);
+      if (!result) {
+        setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
+      } else {
+        setPreview(result);
+      }
+    } catch (e) {
+      console.error("投稿情報の取得に失敗しました:", e);
+      setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleApplyPreviewCaption = () => {
+    if (!preview?.caption) return;
+    setPlaceName(preview.caption.slice(0, 100));
+  };
 
   const handleUpdate = async () => {
     if (name.trim() === "" || place.trim() === "" || saving) return;
@@ -48,6 +89,9 @@ function EditSpot({ spots }) {
         place,
         category,
         url: normalizeUrl(url),
+        placeName,
+        area,
+        extractionStatus: resolveExtractionStatus(placeName, area),
         memo,
         lat: resolvedLat,
         lng: resolvedLng,
@@ -105,10 +149,50 @@ function EditSpot({ spots }) {
         className="urlBox"
         placeholder="https://www.tiktok.com/..."
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={handleUrlChange}
       />
 
+      <button
+        className="analyzeButton"
+        onClick={handleFetchPreview}
+        disabled={!url.trim() || previewLoading}
+      >
+        {previewLoading ? "取得中..." : "📋 投稿情報を取得（TikTok/YouTube/X対応）"}
+      </button>
+
+      {previewError && <p className="previewError">ℹ️ {previewError}</p>}
+
+      {preview && (
+        <div className="previewBox">
+          {preview.authorName && <p className="previewAuthor">👤 {preview.authorName}</p>}
+          {preview.caption && <p className="previewCaption">📝 {preview.caption}</p>}
+          {preview.caption && (
+            <button type="button" className="previewApplyButton" onClick={handleApplyPreviewCaption}>
+              ↳ 店名・場所名欄にコピー
+            </button>
+          )}
+        </div>
+      )}
+
       {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
+
+      <p className="sectionLabel">🔍 場所情報の補助入力（任意）</p>
+
+      <input
+        className="input"
+        type="text"
+        placeholder="店名・場所名（任意）"
+        value={placeName}
+        onChange={(e) => setPlaceName(e.target.value)}
+      />
+
+      <input
+        className="input"
+        type="text"
+        placeholder="エリア（任意）"
+        value={area}
+        onChange={(e) => setArea(e.target.value)}
+      />
 
       <textarea
         className="input"

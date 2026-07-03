@@ -76,6 +76,9 @@ function SpotCard({ spot, onDelete, onToggleFavorite }) {
             {sns.icon} {sns.label}
           </span>
         )}
+        {spot.placeName?.trim() && <p className="placeNameText">🏪 {spot.placeName}</p>}
+        {spot.area?.trim() && <p className="areaText">🗺️ {spot.area}</p>}
+        {spot.url && <p className="urlText">🔗 {spot.url}</p>}
         {savedAt && <p className="savedAt">🕒 {savedAt}</p>}
       </div>
 

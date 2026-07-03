@@ -23,6 +23,11 @@ const SNS_RULES = [
   { type: "x", label: "X", icon: "✕", match: (host) => host.includes("x.com") || host.includes("twitter.com") },
 ];
 
+// placeName / area の入力有無から抽出ステータスを判定する
+export function resolveExtractionStatus(placeName, area) {
+  return placeName?.trim() || area?.trim() ? "manual" : "url_only";
+}
+
 // URL のホスト名から SNS 種別を判定する
 export function detectSns(url) {
   if (!url?.trim()) return { type: "other", label: "リンク", icon: "🔗" };
