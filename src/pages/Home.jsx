@@ -5,7 +5,7 @@ import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
 import { signInWithGoogle, signOutUser } from "../services/authService";
 
-function Home({ spots, user, loading }) {
+function Home({ spots, user, loading, authError }) {
   const location = useLocation();
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("すべて");
@@ -72,9 +72,18 @@ function Home({ spots, user, loading }) {
       <>
         <h1 className="title">📍 SpotSave</h1>
         <p className="subtitle">行きたい場所を、見つけやすく、忘れない。</p>
+
+        {authError && <p className="errorMessage fadeIn">⚠️ {authError}</p>}
+
         <button className="loginButton" onClick={signInWithGoogle}>
           🔑 Googleでログイン
         </button>
+
+        <p className="loginHint">📱 スマホの方はSafari／Chromeで開いてください</p>
+        <p className="loginHint loginHintMuted">
+          ⚠️ LINEやInstagramなどのアプリ内ブラウザ、ホーム画面に追加したPWAではログインが不安定な場合があります。
+          その場合はSafari／Chromeなど通常のブラウザで開き直してください。
+        </p>
       </>
     );
   }

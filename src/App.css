@@ -643,6 +643,19 @@ body {
   margin-top: 24px;
 }
 
+.loginHint {
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.loginHintMuted {
+  color: #aaa;
+  font-size: 12px;
+}
+
 .userBar {
   display: flex;
   align-items: center;

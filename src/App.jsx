@@ -6,7 +6,7 @@ import Home from "./pages/Home";
 import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
 import { subscribeToSpots } from "./services/spotService";
-import { subscribeToAuthState } from "./services/authService";
+import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
 
 // ---- UUID方式に戻す場合はここを解除し、認証ブロックをコメントアウト ----
 // function getOrCreateUserId() {
@@ -23,12 +23,21 @@ function App() {
   const [spotsLoading, setSpotsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   // ---- UUID方式に戻す場合はここを削除し、const user = { uid: USER_ID }; に戻す ----
   useEffect(() => {
     return subscribeToAuthState((u) => {
       setUser(u);
       setAuthLoading(false);
+    });
+  }, []);
+
+  // signInWithRedirect（モバイル）で戻ってきた場合の結果を起動時に一度だけ処理する
+  useEffect(() => {
+    completeRedirectSignIn().catch((e) => {
+      console.error("ログインに失敗しました:", e.code);
+      setAuthError("ログインに失敗しました。もう一度お試しください");
     });
   }, []);
   // ---------------------------------------------------------------------------------
@@ -71,7 +80,7 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<Home spots={spots} user={user} loading={spotsLoading} />}
+              element={<Home spots={spots} user={user} loading={spotsLoading} authError={authError} />}
             />
             <Route
               path="/add"
