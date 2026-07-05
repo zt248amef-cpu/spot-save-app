@@ -33,14 +33,15 @@ export function subscribeToSpots(userId, callback, onError) {
   );
 }
 
-// スポットを追加する
+// スポットを追加する（保存演出のため、新規ドキュメントのIDを返す）
 export async function addSpot(userId, data) {
-  await addDoc(spotsCol, {
+  const docRef = await addDoc(spotsCol, {
     ...data,
     userId,
     favorite: false,
     createdAt: serverTimestamp(),
   });
+  return docRef.id;
 }
 
 // スポットを更新する

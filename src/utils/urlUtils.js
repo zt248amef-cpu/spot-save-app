@@ -28,6 +28,11 @@ export function resolveExtractionStatus(placeName, area) {
   return placeName?.trim() || area?.trim() ? "manual" : "url_only";
 }
 
+// スポットの画像URLをフィールド名の揺れを吸収して解決する（image / imageUrl / thumbnailUrl / thumbnail の順）
+export function resolveSpotImage(spot) {
+  return spot?.image || spot?.imageUrl || spot?.thumbnailUrl || spot?.thumbnail || "";
+}
+
 // URL のホスト名から SNS 種別を判定する
 export function detectSns(url) {
   if (!url?.trim()) return { type: "other", label: "リンク", icon: "🔗" };

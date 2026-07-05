@@ -1,4 +1,5 @@
 import { detectSns, normalizeUrl } from "../utils/urlUtils";
+import { fetchYouTubeDetails } from "./youtubeService";
 
 // 認証不要・CORS対応済みの oEmbed エンドポイント（Instagramはアプリ登録が必要なため非対応）
 const OEMBED_ENDPOINTS = {
@@ -19,6 +20,14 @@ function extractTweetText(html) {
 // 対応外プラットフォームや取得失敗時は null を返す
 export async function fetchOEmbedPreview(url) {
   const sns = detectSns(url);
+
+  // YouTubeはより情報量の多い取得手段（youtubeService）があれば優先する。
+  // このファイルは youtubeService が「何を使って」情報を取るかを一切知らない。
+  if (sns.type === "youtube") {
+    const richResult = await fetchYouTubeDetails(url);
+    if (richResult) return richResult;
+  }
+
   const buildEndpoint = OEMBED_ENDPOINTS[sns.type];
   if (!buildEndpoint) return null;
 

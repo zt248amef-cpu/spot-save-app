@@ -10,12 +10,16 @@ function Home({ spots, user, loading }) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("すべて");
   const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
+  const [highlightedId, setHighlightedId] = useState(location.state?.savedSpotId ?? null);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!showSaved) return;
     window.scrollTo({ top: 0, behavior: "smooth" });
-    const timer = setTimeout(() => setShowSaved(false), 3000);
+    const timer = setTimeout(() => {
+      setShowSaved(false);
+      setHighlightedId(null);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [showSaved]);
 
@@ -33,7 +37,8 @@ function Home({ spots, user, loading }) {
         spot.place.toLowerCase().includes(q) ||
         spot.category.toLowerCase().includes(q) ||
         (spot.placeName ?? "").toLowerCase().includes(q) ||
-        (spot.area ?? "").toLowerCase().includes(q);
+        (spot.area ?? "").toLowerCase().includes(q) ||
+        (spot.addressCandidate ?? "").toLowerCase().includes(q);
       const matchesCategory =
         selectedCategory === "すべて" ||
         (selectedCategory === "⭐ お気に入り" && spot.favorite) ||
@@ -78,11 +83,11 @@ function Home({ spots, user, loading }) {
   return (
     <>
       {showSaved && (
-        <div className="savedToast">✅ 保存しました</div>
+        <div className="savedToast fadeIn">✅ 保存しました</div>
       )}
 
       {errorMessage && (
-        <div className="errorMessage" onClick={() => setErrorMessage("")}>
+        <div className="errorMessage fadeIn" onClick={() => setErrorMessage("")}>
           ⚠️ {errorMessage}
         </div>
       )}
@@ -141,15 +146,20 @@ function Home({ spots, user, loading }) {
             spot={spot}
             onDelete={handleDelete}
             onToggleFavorite={handleToggleFavorite}
+            highlighted={spot.id === highlightedId}
           />
         ))
       )}
 
       <MapView spots={spots} />
 
-      <Link to="/add" className="saveButton linkButton">
-        ＋ 保存する
-      </Link>
+      <div className="stickyActionBarSpacer" />
+
+      <div className="stickyActionBar">
+        <Link to="/add" className="saveButton linkButton">
+          ＋ 保存する
+        </Link>
+      </div>
     </>
   );
 }
