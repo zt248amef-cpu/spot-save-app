@@ -23,6 +23,7 @@ function App() {
   const [spotsLoading, setSpotsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [redirectChecking, setRedirectChecking] = useState(true);
   const [authError, setAuthError] = useState("");
 
   // ---- UUID方式に戻す場合はここを削除し、const user = { uid: USER_ID }; に戻す ----
@@ -33,12 +34,16 @@ function App() {
     });
   }, []);
 
-  // signInWithRedirect（モバイル）で戻ってきた場合の結果を起動時に一度だけ処理する
+  // signInWithRedirect（モバイル）で戻ってきた場合の結果を起動時に一度だけ処理する。
+  // この処理が終わる（redirectChecking=false になる）までログイン画面を描画しないことで、
+  // 「リダイレクトから戻ってきたのにログイン画面のまま」という状態を防ぐ。
   useEffect(() => {
-    completeRedirectSignIn().catch((e) => {
-      console.error("ログインに失敗しました:", e.code);
-      setAuthError("ログインに失敗しました。もう一度お試しください");
-    });
+    completeRedirectSignIn()
+      .catch((e) => {
+        console.error("ログインに失敗しました:", e.code);
+        setAuthError("ログインに失敗しました。もう一度お試しください。");
+      })
+      .finally(() => setRedirectChecking(false));
   }, []);
   // ---------------------------------------------------------------------------------
 
@@ -63,11 +68,11 @@ function App() {
     return unsubscribe;
   }, [user]);
 
-  if (authLoading) {
+  if (authLoading || redirectChecking) {
     return (
       <div className="app">
         <div className="phone" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <p style={{ color: "#aaa" }}>読み込み中...</p>
+          <p style={{ color: "#aaa" }}>{redirectChecking ? "ログイン確認中..." : "読み込み中..."}</p>
         </div>
       </div>
     );
