@@ -39,7 +39,23 @@ function Home({ spots, user, loading, authError }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [loginError, setLoginError] = useState("");
   const [urlCopied, setUrlCopied] = useState(false);
+  const [openSwipeId, setOpenSwipeId] = useState(null);
   const scrollRestored = useRef(false);
+
+  // カードの左スワイプは同時に1枚だけ開ける。開いているカードの外側をタップ
+  // (別カードのスワイプ操作の開始や、検索欄・カテゴリなど他の場所へのタップ含む)
+  // したら閉じる。カード自身の中をタップした場合の開閉はSpotCard側で処理する。
+  useEffect(() => {
+    if (!openSwipeId) return;
+    const handlePointerDownOutside = (e) => {
+      const openEl = document.querySelector(`[data-spot-id="${CSS.escape(openSwipeId)}"]`);
+      if (openEl && !openEl.contains(e.target)) {
+        setOpenSwipeId(null);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDownOutside);
+    return () => document.removeEventListener("pointerdown", handlePointerDownOutside);
+  }, [openSwipeId]);
 
   useEffect(() => {
     safeSessionSet(QUERY_KEY, query);
@@ -239,6 +255,9 @@ function Home({ spots, user, loading, authError }) {
             onDelete={handleDelete}
             onToggleFavorite={handleToggleFavorite}
             highlighted={spot.id === highlightedId}
+            isSwipeOpen={spot.id === openSwipeId}
+            onSwipeOpen={() => setOpenSwipeId(spot.id)}
+            onSwipeClose={() => setOpenSwipeId((cur) => (cur === spot.id ? null : cur))}
           />
         ))
       )}

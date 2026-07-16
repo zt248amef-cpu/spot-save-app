@@ -116,6 +116,53 @@ body {
   cursor: not-allowed;
 }
 
+.cardSwipeWrapper {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.cardSwipeActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 140px;
+  display: flex;
+}
+
+.swipeActionButton {
+  flex: 1;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.swipeActionButton span:first-child {
+  font-size: 20px;
+}
+
+.swipeActionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.swipeActionEdit {
+  background: #64748b;
+}
+
+.swipeActionDelete {
+  background: #e11d48;
+}
+
 .card {
   display: flex;
   gap: 14px;
@@ -123,14 +170,8 @@ body {
   border-radius: 16px;
   box-shadow: 0 5px 15px rgba(0,0,0,.08);
   padding: 16px;
-  margin-bottom: 14px;
   position: relative;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.card:active {
-  transform: scale(0.99);
 }
 
 .card img {
