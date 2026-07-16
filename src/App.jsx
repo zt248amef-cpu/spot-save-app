@@ -5,6 +5,7 @@ import "./App.css";
 import Home from "./pages/Home";
 import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
+import SpotDetail from "./pages/SpotDetail";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
 import {
@@ -215,6 +216,10 @@ function App() {
             <Route
               path="/edit/:id"
               element={<EditSpot spots={spots} />}
+            />
+            <Route
+              path="/spot/:id"
+              element={<SpotDetail spots={spots} />}
             />
           </Routes>
         </div>

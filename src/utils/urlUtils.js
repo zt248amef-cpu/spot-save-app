@@ -33,6 +33,20 @@ export function resolveSpotImage(spot) {
   return spot?.image || spot?.imageUrl || spot?.thumbnailUrl || spot?.thumbnail || "";
 }
 
+// 保存日時を表示用の文字列に整形する
+export function formatSavedAt(createdAt) {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // URL のホスト名から SNS 種別を判定する
 export function detectSns(url) {
   if (!url?.trim()) return { type: "other", label: "リンク", icon: "🔗" };

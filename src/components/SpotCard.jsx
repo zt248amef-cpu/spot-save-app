@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { detectSns, normalizeUrl, resolveSpotImage } from "../utils/urlUtils";
+import { detectSns, normalizeUrl, resolveSpotImage, formatSavedAt } from "../utils/urlUtils";
 import {
   openExternalUrl,
   isStandalonePwa,
@@ -22,19 +22,6 @@ const SWIPE_IGNORE_SELECTOR = "button, a, input, textarea, select, [data-no-swip
 // 「▶ 元動画を見る」等のボタンが反応しなくなるため、入口の時点で除外する)
 function isInteractiveTarget(target) {
   return !!target?.closest?.(SWIPE_IGNORE_SELECTOR);
-}
-
-function formatSavedAt(createdAt) {
-  if (!createdAt) return "";
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 // 続きを読むボタンを出すかどうかの簡易しきい値（2行に収まらなそうな文字数）
@@ -70,9 +57,9 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
   const memoText = spot.memo?.trim();
   const displayImage = resolveSpotImage(spot);
 
-  // カード全体タップでは突然動画を開かない。「▶ 元動画を見る」ボタンを
-  // 動画を開く唯一の入口とし、カードタップはメニューを閉じる・スワイプ操作
-  // ボタンを閉じるだけにする。
+  // カード全体タップでは詳細表示を開く。ただし、直前の操作がスワイプの場合や
+  // メニュー/スワイプ操作ボタンが開いている場合は、それらを閉じるだけにする
+  // (突然動画を開いたり、開いている操作を閉じると同時に詳細へ飛んだりしない)。
   const handleCardClick = () => {
     // 直前の操作がスワイプ(ドラッグ)だった場合、離した後に発火するclickは無視する
     if (suppressClickRef.current) {
@@ -86,7 +73,9 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     if (swipeOffset !== 0) {
       setSwipeOffset(0);
       onSwipeClose?.();
+      return;
     }
+    navigate(`/spot/${spot.id}`);
   };
 
   const handleSwipePointerDown = (e) => {
@@ -143,6 +132,13 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     drag.active = false;
     setIsDragging(false);
+    // ブラウザによってはpointerup後もキャプチャが暗黙に解放されないことがあり、
+    // 次回以降のジェスチャーでpointermoveを取りこぼす原因になるため明示的に解放する
+    try {
+      drag.target?.releasePointerCapture?.(e.pointerId);
+    } catch {
+      // 既に解放済み等で失敗しても無視してよい
+    }
 
     if (drag.direction !== "horizontal") return;
 
@@ -167,10 +163,17 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     }
   };
 
+  const closeSwipe = () => {
+    setSwipeOffset(0);
+    onSwipeClose?.();
+  };
+
   const openVideoWithGuidance = (url) => {
     setVideoGuideToast(true);
     setTimeout(() => setVideoGuideToast(false), 2500);
     openExternalUrl(url);
+    // スワイプ経由(▶ 元動画)でも⋮メニュー経由でも、実際に開いた時点で必ず閉じる
+    closeSwipe();
   };
 
   const handleOpenOriginal = (e) => {
@@ -195,11 +198,6 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
   const handleToggleMenu = (e) => {
     e.stopPropagation();
     setMenuOpen((v) => !v);
-  };
-
-  const closeSwipe = () => {
-    setSwipeOffset(0);
-    onSwipeClose?.();
   };
 
   const handleEdit = (e) => {
@@ -275,16 +273,18 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
   return (
     <div className="cardSwipeWrapper" data-spot-id={spot.id}>
       <div className="cardSwipeActions" aria-hidden={!swipeIsOpen}>
-        <button
-          type="button"
-          className="swipeActionButton swipeActionEdit"
-          aria-label="編集"
-          tabIndex={swipeIsOpen ? 0 : -1}
-          onClick={handleEdit}
-        >
-          <span aria-hidden="true">✏️</span>
-          <span>編集</span>
-        </button>
+        {spot.url?.trim() && (
+          <button
+            type="button"
+            className="swipeActionButton swipeActionVideo"
+            aria-label="元動画を見る"
+            tabIndex={swipeIsOpen ? 0 : -1}
+            onClick={handleOpenOriginal}
+          >
+            <span aria-hidden="true">▶️</span>
+            <span>元動画</span>
+          </button>
+        )}
         <button
           type="button"
           className="swipeActionButton swipeActionDelete"
