@@ -1,7 +1,13 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { detectSns, normalizeUrl, resolveSpotImage } from "../utils/urlUtils";
-import { openExternalUrl } from "../utils/externalNavigation";
+import {
+  openExternalUrl,
+  isStandalonePwa,
+  hasSeenPwaVideoGuide,
+  markPwaVideoGuideSeen,
+} from "../utils/externalNavigation";
 
 function formatSavedAt(createdAt) {
   if (!createdAt) return "";
@@ -27,6 +33,8 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
   const [memoExpanded, setMemoExpanded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [favoritePulse, setFavoritePulse] = useState(false);
+  const [videoGuideToast, setVideoGuideToast] = useState(false);
+  const [showPwaFirstTimeGuide, setShowPwaFirstTimeGuide] = useState(false);
   const sns = detectSns(spot.url);
   const savedAt = formatSavedAt(spot.createdAt);
 
@@ -36,20 +44,37 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
   const memoText = spot.memo?.trim();
   const displayImage = resolveSpotImage(spot);
 
+  // カード全体タップでは突然動画を開かない。「▶ 元動画を見る」ボタンを
+  // 動画を開く唯一の入口とし、カードタップはメニューを閉じるだけにする。
   const handleCardClick = () => {
     if (menuOpen) {
       setMenuOpen(false);
-      return;
     }
-    if (!spot.url?.trim()) return;
-    openExternalUrl(spot.url);
+  };
+
+  const openVideoWithGuidance = (url) => {
+    setVideoGuideToast(true);
+    setTimeout(() => setVideoGuideToast(false), 2500);
+    openExternalUrl(url);
   };
 
   const handleOpenOriginal = (e) => {
     e.stopPropagation();
     setMenuOpen(false);
     if (!spot.url?.trim()) return;
-    openExternalUrl(spot.url);
+    // ホーム画面PWAでは初回のみ、別画面で開く旨の案内を先に表示してから遷移する
+    if (isStandalonePwa() && !hasSeenPwaVideoGuide()) {
+      setShowPwaFirstTimeGuide(true);
+      return;
+    }
+    openVideoWithGuidance(spot.url);
+  };
+
+  const handleConfirmPwaGuide = (e) => {
+    e.stopPropagation();
+    markPwaVideoGuideSeen();
+    setShowPwaFirstTimeGuide(false);
+    openVideoWithGuidance(spot.url);
   };
 
   const handleToggleMenu = (e) => {
@@ -172,6 +197,25 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
           <button onClick={handleDelete} disabled={deleting}>🗑 削除</button>
         </div>
       )}
+
+      {videoGuideToast && (
+        <div className="videoGuideToast">🎬 動画を閉じるとSpotSaveに戻れます</div>
+      )}
+
+      {showPwaFirstTimeGuide &&
+        createPortal(
+          // .card:active の transform がposition:fixedの基準をずらしてしまうため、
+          // .card配下ではなくdocument.body直下にポータルで描画し、常に画面全体に固定する
+          <div className="pwaVideoGuideOverlay" onClick={(e) => e.stopPropagation()}>
+            <div className="pwaVideoGuideBox">
+              <p>📱 YouTubeは別画面で開きます。左上または右上の×で閉じると戻れます</p>
+              <button type="button" className="saveButton" onClick={handleConfirmPwaGuide}>
+                開く
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

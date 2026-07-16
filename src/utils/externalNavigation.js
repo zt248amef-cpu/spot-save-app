@@ -8,6 +8,8 @@ const KEYS = {
   reloadAttempted: "spotsave_reloadAttempted",
 };
 
+const PWA_VIDEO_GUIDE_SEEN_KEY = "spotsave_pwaVideoGuideSeen";
+
 // sessionStorageが使えない環境（プライベートブラウズ等）でも例外で落ちないようにする
 function safeGet(key) {
   try {
@@ -31,6 +33,32 @@ function safeRemove(key) {
   } catch {
     // noop
   }
+}
+
+// タブを閉じても消えないようlocalStorageで永続化する（PWA案内は「本当に初回だけ」表示したいため）
+function safeLocalGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // noop
+  }
+}
+
+// ホーム画面PWAで「別画面で開く」旨の案内をこれまでに見たことがあるか
+export function hasSeenPwaVideoGuide() {
+  return safeLocalGet(PWA_VIDEO_GUIDE_SEEN_KEY) === "true";
+}
+
+export function markPwaVideoGuideSeen() {
+  safeLocalSet(PWA_VIDEO_GUIDE_SEEN_KEY, "true");
 }
 
 // ホーム画面に追加された状態（standalone起動）かどうかを判定する
