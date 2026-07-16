@@ -656,6 +656,23 @@ body {
   font-size: 12px;
 }
 
+.inAppBrowserNotice {
+  background: #fff7e0;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 24px;
+}
+
+.inAppBrowserNotice .loginHint {
+  color: #92700c;
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.inAppBrowserNotice .loginButton {
+  margin-top: 0;
+}
+
 .userBar {
   display: flex;
   align-items: center;

@@ -3,7 +3,12 @@ import SpotCard from "../components/SpotCard";
 import { Link, useLocation } from "react-router-dom";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
-import { signInWithGoogle, signOutUser } from "../services/authService";
+import {
+  signInWithGoogle,
+  signOutUser,
+  isInAppBrowser,
+  IN_APP_BROWSER_ERROR_CODE,
+} from "../services/authService";
 
 function Home({ spots, user, loading, authError }) {
   const location = useLocation();
@@ -12,6 +17,8 @@ function Home({ spots, user, loading, authError }) {
   const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
   const [highlightedId, setHighlightedId] = useState(location.state?.savedSpotId ?? null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [urlCopied, setUrlCopied] = useState(false);
 
   useEffect(() => {
     if (!showSaved) return;
@@ -66,24 +73,60 @@ function Home({ spots, user, loading, authError }) {
     }
   };
 
+  const handleLogin = async () => {
+    setLoginError("");
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      console.error("ログインに失敗しました:", e.code);
+      if (e.code === IN_APP_BROWSER_ERROR_CODE) {
+        setLoginError(
+          "このブラウザではGoogleログインできません。右上メニューからSafariまたはChromeで開いてください。"
+        );
+      } else {
+        setLoginError("ログインに失敗しました。もう一度お試しください。");
+      }
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch (e) {
+      console.error("URLのコピーに失敗しました:", e);
+    }
+  };
+
   // ---- UUID方式に戻す場合はここをコメントアウト ----
   if (!user) {
+    const inAppBrowser = isInAppBrowser();
     return (
       <>
         <h1 className="title">📍 SpotSave</h1>
         <p className="subtitle">行きたい場所を、見つけやすく、忘れない。</p>
 
         {authError && <p className="errorMessage fadeIn">⚠️ {authError}</p>}
+        {loginError && <p className="errorMessage fadeIn">⚠️ {loginError}</p>}
 
-        <button className="loginButton" onClick={signInWithGoogle}>
-          🔑 Googleでログイン
-        </button>
-
-        <p className="loginHint">📱 スマホの方はSafari／Chromeで開いてください</p>
-        <p className="loginHint loginHintMuted">
-          ⚠️ LINEやInstagramなどのアプリ内ブラウザ、ホーム画面に追加したPWAではログインが不安定な場合があります。
-          その場合はSafari／Chromeなど通常のブラウザで開き直してください。
-        </p>
+        {inAppBrowser ? (
+          <div className="inAppBrowserNotice fadeIn">
+            <p className="loginHint">
+              ⚠️ このブラウザではGoogleログインできません。右上メニューからSafariまたはChromeで開いてください。
+            </p>
+            <button type="button" className="loginButton" onClick={handleCopyUrl}>
+              {urlCopied ? "✅ コピーしました" : "🔗 このページのURLをコピー"}
+            </button>
+          </div>
+        ) : (
+          <>
+            <button className="loginButton" onClick={handleLogin}>
+              🔑 Googleでログイン
+            </button>
+            <p className="loginHint">📱 スマホの方はSafari／Chromeで開いてください</p>
+          </>
+        )}
       </>
     );
   }
