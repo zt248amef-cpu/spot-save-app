@@ -1,5 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import { Map as MapIcon, MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -20,7 +21,10 @@ function MapView({ spots }) {
 
   return (
     <div className="mapSection">
-      <p className="mapLabel">🗺️ 地図</p>
+      <p className="mapLabel">
+        <MapIcon aria-hidden="true" />
+        地図
+      </p>
       <div className="mapWrapper">
         <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
           <TileLayer
@@ -32,7 +36,8 @@ function MapView({ spots }) {
               <Popup>
                 <strong>{spot.title}</strong>
                 <br />
-                📍 {spot.place}
+                <MapPin size={12} style={{ verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+                {spot.place}
                 {spot.memo && <><br />{spot.memo}</>}
               </Popup>
             </Marker>

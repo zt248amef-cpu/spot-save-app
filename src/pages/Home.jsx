@@ -1,6 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import SpotCard from "../components/SpotCard";
 import { Link, useLocation } from "react-router-dom";
+import {
+  Search,
+  MapPin,
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  LogIn,
+  Smartphone,
+  Plus,
+  LogOut,
+  Heart,
+  Coffee,
+  UtensilsCrossed,
+  Flame,
+  Sparkles,
+  Plane,
+  LayoutGrid,
+} from "lucide-react";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
 import {
@@ -10,6 +28,19 @@ import {
   IN_APP_BROWSER_ERROR_CODE,
 } from "../services/authService";
 import { consumeSavedScrollY } from "../utils/externalNavigation";
+import { stripLeadingEmoji } from "../utils/urlUtils";
+
+// カテゴリの値(Firestoreに保存されている絵文字付きの文字列)自体は既存データとの
+// 互換性のため変更しない。表示上のアイコンだけをこのマップで対応付ける。
+const CATEGORY_ICONS = {
+  すべて: LayoutGrid,
+  "⭐ お気に入り": Heart,
+  "☕ カフェ": Coffee,
+  "🍜 グルメ": UtensilsCrossed,
+  "🧖 サウナ": Flame,
+  "❤️ デート": Sparkles,
+  "✈️ 旅行": Plane,
+};
 
 const QUERY_KEY = "spotsave_homeQuery";
 const CATEGORY_KEY = "spotsave_homeCategory";
@@ -160,27 +191,52 @@ function Home({ spots, user, loading, authError }) {
     const inAppBrowser = isInAppBrowser();
     return (
       <>
-        <h1 className="title">📍 SpotSave</h1>
+        <h1 className="title">SpotSave</h1>
         <p className="subtitle">行きたい場所を、見つけやすく、忘れない。</p>
 
-        {authError && <p className="errorMessage fadeIn">⚠️ {authError}</p>}
-        {loginError && <p className="errorMessage fadeIn">⚠️ {loginError}</p>}
+        {authError && (
+          <p className="errorMessage fadeIn">
+            <AlertCircle aria-hidden="true" />
+            {authError}
+          </p>
+        )}
+        {loginError && (
+          <p className="errorMessage fadeIn">
+            <AlertCircle aria-hidden="true" />
+            {loginError}
+          </p>
+        )}
 
         {inAppBrowser ? (
           <div className="inAppBrowserNotice fadeIn">
             <p className="loginHint">
-              ⚠️ このブラウザではGoogleログインできません。右上メニューからSafariまたはChromeで開いてください。
+              <AlertCircle aria-hidden="true" />
+              このブラウザではGoogleログインできません。右上メニューからSafariまたはChromeで開いてください。
             </p>
             <button type="button" className="loginButton" onClick={handleCopyUrl}>
-              {urlCopied ? "✅ コピーしました" : "🔗 このページのURLをコピー"}
+              {urlCopied ? (
+                <>
+                  <CheckCircle2 aria-hidden="true" />
+                  コピーしました
+                </>
+              ) : (
+                <>
+                  <Copy aria-hidden="true" />
+                  このページのURLをコピー
+                </>
+              )}
             </button>
           </div>
         ) : (
           <>
             <button className="loginButton" onClick={handleLogin}>
-              🔑 Googleでログイン
+              <LogIn aria-hidden="true" />
+              Googleでログイン
             </button>
-            <p className="loginHint">📱 スマホの方はSafari／Chromeで開いてください</p>
+            <p className="loginHint">
+              <Smartphone aria-hidden="true" />
+              スマホの方はSafari／Chromeで開いてください
+            </p>
           </>
         )}
       </>
@@ -191,42 +247,56 @@ function Home({ spots, user, loading, authError }) {
   return (
     <>
       {showSaved && (
-        <div className="savedToast fadeIn">✅ 保存しました</div>
+        <div className="savedToast fadeIn">
+          <CheckCircle2 aria-hidden="true" />
+          保存しました
+        </div>
       )}
 
       {errorMessage && (
         <div className="errorMessage fadeIn" onClick={() => setErrorMessage("")}>
-          ⚠️ {errorMessage}
+          <AlertCircle aria-hidden="true" />
+          {errorMessage}
         </div>
       )}
 
-      <h1 className="title">📍 SpotSave</h1>
+      <h1 className="title">SpotSave</h1>
 
       {/* ---- UUID方式に戻す場合はここをコメントアウト ---- */}
       <div className="userBar">
         <span className="userName">{user.displayName}</span>
-        <button className="logoutButton" onClick={signOutUser}>ログアウト</button>
+        <button className="logoutButton" onClick={signOutUser}>
+          <LogOut aria-hidden="true" />
+          ログアウト
+        </button>
       </div>
       {/* ------------------------------------------------- */}
 
-      <input
-        className="search"
-        type="text"
-        placeholder="🔍 検索..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="searchWrapper">
+        <Search className="searchIcon" aria-hidden="true" />
+        <input
+          className="search"
+          type="text"
+          placeholder="検索..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
 
       <div className="categories">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            className={selectedCategory === cat ? "active" : ""}
-            onClick={() => setSelectedCategory(cat)}
-          >
-            {cat}
-          </button>
-        ))}
+        {categories.map((cat) => {
+          const CategoryIcon = CATEGORY_ICONS[cat];
+          return (
+            <button
+              key={cat}
+              className={selectedCategory === cat ? "active" : ""}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {CategoryIcon && <CategoryIcon aria-hidden="true" />}
+              {stripLeadingEmoji(cat) || cat}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -238,7 +308,9 @@ function Home({ spots, user, loading, authError }) {
       ) : filteredSpots.length === 0 ? (
         spots.length === 0 ? (
           <div className="emptyState">
-            <p className="emptyStateIcon">📍</p>
+            <p className="emptyStateIcon">
+              <MapPin aria-hidden="true" />
+            </p>
             <p className="emptyStateTitle">まだ保存がありません</p>
             <p className="emptyStateSubtitle">
               気になる場所のURLを貼り付けて保存してみましょう
@@ -268,7 +340,8 @@ function Home({ spots, user, loading, authError }) {
 
       <div className="stickyActionBar">
         <Link to="/add" className="saveButton linkButton">
-          ＋ 保存する
+          <Plus aria-hidden="true" />
+          保存する
         </Link>
       </div>
     </>

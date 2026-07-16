@@ -17,11 +17,20 @@ export function isValidUrl(url) {
 }
 
 const SNS_RULES = [
-  { type: "tiktok", label: "TikTok", icon: "🎵", match: (host) => host.includes("tiktok.com") },
-  { type: "instagram", label: "Instagram", icon: "📷", match: (host) => host.includes("instagram.com") },
-  { type: "youtube", label: "YouTube", icon: "▶️", match: (host) => host.includes("youtube.com") || host.includes("youtu.be") },
-  { type: "x", label: "X", icon: "✕", match: (host) => host.includes("x.com") || host.includes("twitter.com") },
+  { type: "tiktok", label: "TikTok", match: (host) => host.includes("tiktok.com") },
+  { type: "instagram", label: "Instagram", match: (host) => host.includes("instagram.com") },
+  { type: "youtube", label: "YouTube", match: (host) => host.includes("youtube.com") || host.includes("youtu.be") },
+  { type: "x", label: "X", match: (host) => host.includes("x.com") || host.includes("twitter.com") },
 ];
+
+// カテゴリ等の先頭についた絵文字(装飾目的)を取り除き、テキストのみにする。
+// 保存済みデータのカテゴリ値そのもの(比較・保存に使う文字列)は変更せず、
+// 表示用にのみ使う。
+export function stripLeadingEmoji(text) {
+  if (!text) return "";
+  // \u{FE0F}: 異体字セレクタ, \u{200D}: ZWJ(絵文字の連結に使われる)
+  return text.replace(/^[\p{Extended_Pictographic}\u{FE0F}\u{200D}\s]+/gu, "").trim();
+}
 
 // placeName / area の入力有無から抽出ステータスを判定する
 export function resolveExtractionStatus(placeName, area) {
@@ -49,13 +58,13 @@ export function formatSavedAt(createdAt) {
 
 // URL のホスト名から SNS 種別を判定する
 export function detectSns(url) {
-  if (!url?.trim()) return { type: "other", label: "リンク", icon: "🔗" };
+  if (!url?.trim()) return { type: "other", label: "リンク" };
   try {
     const host = new URL(normalizeUrl(url)).hostname.toLowerCase();
     const rule = SNS_RULES.find((r) => r.match(host));
-    if (rule) return { type: rule.type, label: rule.label, icon: rule.icon };
+    if (rule) return { type: rule.type, label: rule.label };
   } catch {
     // 判定できない場合は other 扱い
   }
-  return { type: "other", label: "リンク", icon: "🔗" };
+  return { type: "other", label: "リンク" };
 }

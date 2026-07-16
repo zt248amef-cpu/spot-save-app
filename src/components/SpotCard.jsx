@@ -1,7 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { detectSns, normalizeUrl, resolveSpotImage, formatSavedAt } from "../utils/urlUtils";
+import {
+  Heart,
+  MoreVertical,
+  Play,
+  Trash2,
+  Pencil,
+  Share2,
+  MapPin,
+  Map,
+  Clock,
+  Tag,
+  Film,
+  Smartphone,
+  ImageOff,
+} from "lucide-react";
+import { detectSns, normalizeUrl, resolveSpotImage, formatSavedAt, stripLeadingEmoji } from "../utils/urlUtils";
+import { isInteractiveTarget } from "../utils/domUtils";
 import {
   openExternalUrl,
   isStandalonePwa,
@@ -14,15 +30,6 @@ const SWIPE_OPEN_OFFSET = -140; // 開いた状態で左へ動かす量(編集+�
 const SWIPE_MAX_OFFSET = -160; // 指を離さず引っ張っても、これ以上は動かさない(画面外へ飛ばさない)
 const SWIPE_COMMIT_THRESHOLD = 30; // これ未満の移動量では元の位置へ戻す
 const SWIPE_DIRECTION_LOCK = 8; // このpx数を超えるまでは縦/横どちらのジェスチャーか判定を保留する
-const SWIPE_IGNORE_SELECTOR = "button, a, input, textarea, select, [data-no-swipe]";
-
-// ボタン等の操作要素からジェスチャーが始まった場合はスワイプ判定そのものを行わない。
-// (タッチ操作は指のわずかなブレでも横移動と誤判定されることがあり、その状態で
-// pointermoveにpreventDefaultすると、タッチ由来のclickイベントごと消えてしまい
-// 「▶ 元動画を見る」等のボタンが反応しなくなるため、入口の時点で除外する)
-function isInteractiveTarget(target) {
-  return !!target?.closest?.(SWIPE_IGNORE_SELECTOR);
-}
 
 // 続きを読むボタンを出すかどうかの簡易しきい値（2行に収まらなそうな文字数）
 const MEMO_TRUNCATE_THRESHOLD = 50;
@@ -281,7 +288,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
             tabIndex={swipeIsOpen ? 0 : -1}
             onClick={handleOpenOriginal}
           >
-            <span aria-hidden="true">▶️</span>
+            <Play aria-hidden="true" strokeWidth={2} fill="currentColor" />
             <span>元動画</span>
           </button>
         )}
@@ -293,7 +300,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           disabled={deleting}
           onClick={handleDelete}
         >
-          <span aria-hidden="true">🗑️</span>
+          <Trash2 aria-hidden="true" strokeWidth={2} />
           <span>削除</span>
         </button>
       </div>
@@ -311,7 +318,13 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           touchAction: "pan-y",
         }}
       >
-      <img src={displayImage || "https://placehold.co/200x200?text=No+Image"} alt={displayTitle} />
+      {displayImage ? (
+        <img src={displayImage} alt={displayTitle} />
+      ) : (
+        <div className="cardThumbnailPlaceholder" aria-hidden="true">
+          <ImageOff size={28} strokeWidth={1.5} />
+        </div>
+      )}
 
       <div className="info">
         <div className="cardHeaderRow">
@@ -320,19 +333,26 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
             className={`favoriteButton${spot.favorite ? " active" : ""}${favoritePulse ? " pulse" : ""}`}
             onClick={handleFavorite}
             disabled={togglingFavorite}
+            aria-label={spot.favorite ? "お気に入りから外す" : "お気に入りに追加"}
           >
-            ⭐
+            <Heart fill={spot.favorite ? "currentColor" : "none"} strokeWidth={2} />
           </button>
         </div>
 
         <div className="cardMetaRow">
-          {displayArea && <span className="metaItem">📍 {displayArea}</span>}
-          {spot.category && <span className="metaItem categoryTag">{spot.category}</span>}
-          {spot.url && (
-            <span className="metaItem snsBadge">
-              {sns.icon} {sns.label}
+          {displayArea && (
+            <span className="metaItem">
+              <MapPin aria-hidden="true" />
+              {displayArea}
             </span>
           )}
+          {spot.category && (
+            <span className="metaItem categoryTag">
+              <Tag aria-hidden="true" />
+              {stripLeadingEmoji(spot.category)}
+            </span>
+          )}
+          {spot.url && <span className="metaItem snsBadge">{sns.label}</span>}
         </div>
 
         {memoText && (
@@ -346,29 +366,50 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           </div>
         )}
 
-        {savedAt && <p className="savedAt">🕒 {savedAt}</p>}
+        {savedAt && (
+          <p className="savedAt">
+            <Clock aria-hidden="true" />
+            {savedAt}
+          </p>
+        )}
       </div>
 
-      <button className="menuButton" onClick={handleToggleMenu}>
-        ⋮
+      <button className="menuButton" onClick={handleToggleMenu} aria-label="メニュー">
+        <MoreVertical aria-hidden="true" />
       </button>
 
       {menuOpen && (
         <div className="cardMenu" onClick={(e) => e.stopPropagation()}>
           {spot.url?.trim() && (
             <button data-no-swipe onClick={handleOpenOriginal}>
-              ▶️ 元動画を見る
+              <Play aria-hidden="true" />
+              元動画を見る
             </button>
           )}
-          <button onClick={handleMap}>🗺️ 地図で見る</button>
-          <button onClick={handleEdit}>✏️ 編集</button>
-          <button onClick={handleShare}>🔗 {shareCopied ? "コピーしました" : "共有"}</button>
-          <button onClick={handleDelete} disabled={deleting}>🗑 削除</button>
+          <button onClick={handleMap}>
+            <Map aria-hidden="true" />
+            地図で見る
+          </button>
+          <button onClick={handleEdit}>
+            <Pencil aria-hidden="true" />
+            編集
+          </button>
+          <button onClick={handleShare}>
+            <Share2 aria-hidden="true" />
+            {shareCopied ? "コピーしました" : "共有"}
+          </button>
+          <button onClick={handleDelete} disabled={deleting}>
+            <Trash2 aria-hidden="true" />
+            削除
+          </button>
         </div>
       )}
 
       {videoGuideToast && (
-        <div className="videoGuideToast">🎬 動画を閉じるとSpotSaveに戻れます</div>
+        <div className="videoGuideToast">
+          <Film aria-hidden="true" />
+          動画を閉じるとSpotSaveに戻れます
+        </div>
       )}
 
       {showPwaFirstTimeGuide &&
@@ -377,7 +418,8 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           // .card配下ではなくdocument.body直下にポータルで描画し、常に画面全体に固定する
           <div className="pwaVideoGuideOverlay" onClick={(e) => e.stopPropagation()}>
             <div className="pwaVideoGuideBox">
-              <p>📱 YouTubeは別画面で開きます。左上または右上の×で閉じると戻れます</p>
+              <Smartphone aria-hidden="true" />
+              <p>YouTubeは別画面で開きます。左上または右上の×で閉じると戻れます</p>
               <button type="button" className="saveButton" onClick={handleConfirmPwaGuide}>
                 開く
               </button>

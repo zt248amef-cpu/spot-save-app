@@ -1,5 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bot,
+  Search,
+  Info,
+  AlertCircle,
+  Lightbulb,
+  FileText,
+  StickyNote,
+  User,
+  Clipboard,
+} from "lucide-react";
 import { updateSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
@@ -159,7 +171,8 @@ function EditSpot({ spots }) {
   return (
     <>
       <Link to="/" className="backButton">
-        ← 戻る
+        <ArrowLeft aria-hidden="true" />
+        戻る
       </Link>
 
       <h1 className="title">スポットを編集</h1>
@@ -208,25 +221,53 @@ function EditSpot({ spots }) {
         onClick={handleFetchPreview}
         disabled={!url.trim() || previewLoading}
       >
-        {previewLoading ? "取得中..." : "📋 投稿情報を取得（TikTok/YouTube/X対応）"}
+        {previewLoading ? (
+          "取得中..."
+        ) : (
+          <>
+            <Clipboard aria-hidden="true" />
+            投稿情報を取得（TikTok/YouTube/X対応）
+          </>
+        )}
       </button>
 
-      {previewError && <p className="previewError">ℹ️ {previewError}</p>}
+      {previewError && (
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          {previewError}
+        </p>
+      )}
 
       {preview && (
         <div className="previewBox fadeIn">
-          {preview.authorName && <p className="previewAuthor">👤 {preview.authorName}</p>}
-          {preview.caption && <p className="previewCaption">📝 {preview.caption}</p>}
-          {preview.description && <p className="previewDescription">📄 {preview.description}</p>}
+          {preview.authorName && (
+            <p className="previewAuthor">
+              <User aria-hidden="true" />
+              {preview.authorName}
+            </p>
+          )}
+          {preview.caption && (
+            <p className="previewCaption">
+              <StickyNote aria-hidden="true" className="inlineIcon" />
+              {preview.caption}
+            </p>
+          )}
+          {preview.description && (
+            <p className="previewDescription">
+              <FileText aria-hidden="true" className="inlineIcon" />
+              {preview.description}
+            </p>
+          )}
           <div className="previewActions">
             {preview.caption && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewCaption}>
-                ↳ 店名・場所名欄にコピー
+                店名・場所名欄にコピー
               </button>
             )}
             {preview.description && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewDescription}>
-                📄 メモ欄にコピー
+                <FileText aria-hidden="true" />
+                メモ欄にコピー
               </button>
             )}
           </div>
@@ -239,21 +280,39 @@ function EditSpot({ spots }) {
               disabled={aiLoading}
               style={{ marginTop: "10px" }}
             >
-              {aiLoading ? "AI抽出中..." : "🤖 AIで店名・エリア・住所候補を抽出"}
+              {aiLoading ? (
+                "AI抽出中..."
+              ) : (
+                <>
+                  <Bot aria-hidden="true" />
+                  AIで店名・エリア・住所候補を抽出
+                </>
+              )}
             </button>
           )}
         </div>
       )}
 
-      {aiError && <p className="previewError">ℹ️ {aiError}</p>}
+      {aiError && (
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          {aiError}
+        </p>
+      )}
 
       {aiResult?.mode === "unknown" && (
-        <p className="previewError">ℹ️ 自動抽出できませんでした。手入力してください。</p>
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          自動抽出できませんでした。手入力してください。
+        </p>
       )}
 
       {aiResult?.mode === "single" && (
         <div className="aiResultBox fadeIn">
-          <p className="aiResultTitle">🤖 AI抽出結果</p>
+          <p className="aiResultTitle">
+            <Bot aria-hidden="true" />
+            AI抽出結果
+          </p>
           <p>店名・施設名：{aiResult.placeName || "―"}</p>
           <p>エリア：{aiResult.area || "―"}</p>
           <p>住所候補：{aiResult.addressCandidate || "―"}</p>
@@ -265,27 +324,37 @@ function EditSpot({ spots }) {
               {aiResult.sourceType && `（情報源：${describeSourceType(aiResult.sourceType)}）`}
             </p>
           )}
-          {aiResult.evidence && <p className="aiCandidateEvidence">📄 根拠：{aiResult.evidence}</p>}
+          {aiResult.evidence && (
+            <p className="aiCandidateEvidence">
+              <FileText aria-hidden="true" className="inlineIcon" />
+              根拠：{aiResult.evidence}
+            </p>
+          )}
           {aiResult.geoSearchQueries?.length > 0 && (
             <p className="aiCandidateQueries">
-              🔍 地図検索候補：{aiResult.geoSearchQueries.join(" / ")}
+              <Search aria-hidden="true" className="inlineIcon" />
+              地図検索候補：{aiResult.geoSearchQueries.join(" / ")}
             </p>
           )}
           <button type="button" className="previewApplyButton" onClick={handleApplyAiResult}>
-            ↳ 入力欄に反映する
+            入力欄に反映する
           </button>
         </div>
       )}
 
       {aiResult?.mode === "multiple" && aiResult.candidates.length === 0 && (
         <p className="previewError">
-          ℹ️ 候補を特定できませんでした。動画内で紹介されている可能性があります。手入力してください。
+          <Info aria-hidden="true" className="inlineIcon" />
+          候補を特定できませんでした。動画内で紹介されている可能性があります。手入力してください。
         </p>
       )}
 
       {aiResult?.mode === "multiple" && aiResult.candidates.length > 0 && (
         <div className="aiCandidatesBox fadeIn">
-          <p className="aiResultTitle">🤖 候補が複数見つかりました。どれを保存しますか？</p>
+          <p className="aiResultTitle">
+            <Bot aria-hidden="true" />
+            候補が複数見つかりました。どれを保存しますか？
+          </p>
           {aiResult.candidates.map((candidate, index) => (
             <div className="aiCandidateCard" key={index}>
               <p>店名：{candidate.placeName || "―"}</p>
@@ -299,11 +368,22 @@ function EditSpot({ spots }) {
                   {candidate.sourceType && `（情報源：${describeSourceType(candidate.sourceType)}）`}
                 </p>
               )}
-              {candidate.reason && <p className="aiCandidateReason">💡 {candidate.reason}</p>}
-              {candidate.evidence && <p className="aiCandidateEvidence">📄 根拠：{candidate.evidence}</p>}
+              {candidate.reason && (
+                <p className="aiCandidateReason">
+                  <Lightbulb aria-hidden="true" className="inlineIcon" />
+                  {candidate.reason}
+                </p>
+              )}
+              {candidate.evidence && (
+                <p className="aiCandidateEvidence">
+                  <FileText aria-hidden="true" className="inlineIcon" />
+                  根拠：{candidate.evidence}
+                </p>
+              )}
               {candidate.geoSearchQueries?.length > 0 && (
                 <p className="aiCandidateQueries">
-                  🔍 地図検索候補：{candidate.geoSearchQueries.join(" / ")}
+                  <Search aria-hidden="true" className="inlineIcon" />
+                  地図検索候補：{candidate.geoSearchQueries.join(" / ")}
                 </p>
               )}
               <button
@@ -318,9 +398,17 @@ function EditSpot({ spots }) {
         </div>
       )}
 
-      {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
+      {errorMessage && (
+        <p className="errorMessage">
+          <AlertCircle aria-hidden="true" />
+          {errorMessage}
+        </p>
+      )}
 
-      <p className="sectionLabel">🔍 場所情報の補助入力（任意）</p>
+      <p className="sectionLabel">
+        <Search aria-hidden="true" />
+        場所情報の補助入力（任意）
+      </p>
 
       <input
         className="input"

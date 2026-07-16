@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { AlertTriangle } from "lucide-react";
 
 // Reactのレンダリング中に予期しないエラーが発生した場合、
 // 真っ白な画面のまま操作不能になることを防ぎ、復旧用のUIを表示する。
@@ -26,7 +27,9 @@ class ErrorBoundary extends Component {
       return (
         <div className="app">
           <div className="phone errorBoundaryScreen">
-            <p className="errorBoundaryIcon">😥</p>
+            <p className="errorBoundaryIcon">
+              <AlertTriangle aria-hidden="true" />
+            </p>
             <p className="errorBoundaryTitle">画面の表示に問題が発生しました</p>
             <p className="errorBoundarySubtitle">お手数ですが、下のボタンからやり直してください</p>
             <button type="button" className="saveButton errorBoundaryButton" onClick={this.handleReload}>

@@ -1,5 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bot,
+  Clipboard,
+  User,
+  FileText,
+  StickyNote,
+  Image as ImageIcon,
+  Info,
+  AlertCircle,
+  Lightbulb,
+  Search,
+  Camera,
+} from "lucide-react";
 import { addSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
@@ -210,13 +224,17 @@ function AddSpot({ user }) {
     return (
       <>
         <Link to="/" className="backButton">
-          ← 戻る
+          <ArrowLeft aria-hidden="true" />
+          戻る
         </Link>
 
         <h1 className="title">URLを貼って保存</h1>
 
         <div className="quickConfirmCard fadeIn">
-          <p className="quickConfirmTitle">🤖 AIが抽出しました</p>
+          <p className="quickConfirmTitle">
+            <Bot aria-hidden="true" className="inlineIcon" />
+            AIが抽出しました
+          </p>
           <div className="quickConfirmDivider" />
           <p className="quickConfirmRow"><strong>店名</strong>：{placeName || "―"}</p>
           <p className="quickConfirmRow"><strong>エリア</strong>：{area || "―"}</p>
@@ -232,9 +250,17 @@ function AddSpot({ user }) {
           <div className="quickConfirmDivider" />
 
           {!canSave && (
-            <p className="previewError">ℹ️ 場所情報が不足しています。「編集する」から入力してください</p>
+            <p className="previewError">
+              <Info aria-hidden="true" className="inlineIcon" />
+              場所情報が不足しています。「編集する」から入力してください
+            </p>
           )}
-          {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
+          {errorMessage && (
+            <p className="errorMessage">
+              <AlertCircle aria-hidden="true" />
+              {errorMessage}
+            </p>
+          )}
         </div>
 
         <div className="stickyActionBarSpacer" />
@@ -286,34 +312,63 @@ function AddSpot({ user }) {
           onClick={handleFetchPreview}
           disabled={!url.trim() || previewLoading}
         >
-          {previewLoading ? "取得中..." : "📋 投稿情報を取得（TikTok/YouTube/X対応）"}
+          {previewLoading ? (
+            "取得中..."
+          ) : (
+            <>
+              <Clipboard aria-hidden="true" />
+              投稿情報を取得（TikTok/YouTube/X対応）
+            </>
+          )}
         </button>
       </div>
 
-      {previewError && <p className="previewError">ℹ️ {previewError}</p>}
+      {previewError && (
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          {previewError}
+        </p>
+      )}
 
       {preview && (
         <div className="previewBox fadeIn">
           {preview.thumbnailUrl && (
             <img className="previewThumbnail" src={preview.thumbnailUrl} alt="投稿サムネイル" />
           )}
-          {preview.authorName && <p className="previewAuthor">👤 {preview.authorName}</p>}
-          {preview.caption && <p className="previewCaption">📝 {preview.caption}</p>}
-          {preview.description && <p className="previewDescription">📄 {preview.description}</p>}
+          {preview.authorName && (
+            <p className="previewAuthor">
+              <User aria-hidden="true" />
+              {preview.authorName}
+            </p>
+          )}
+          {preview.caption && (
+            <p className="previewCaption">
+              <StickyNote aria-hidden="true" className="inlineIcon" />
+              {preview.caption}
+            </p>
+          )}
+          {preview.description && (
+            <p className="previewDescription">
+              <FileText aria-hidden="true" className="inlineIcon" />
+              {preview.description}
+            </p>
+          )}
           <div className="previewActions">
             {preview.caption && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewCaption}>
-                ↳ 店名・場所名欄にコピー
+                店名・場所名欄にコピー
               </button>
             )}
             {preview.thumbnailUrl && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewThumbnail}>
-                🖼️ サムネイルを使う
+                <ImageIcon aria-hidden="true" />
+                サムネイルを使う
               </button>
             )}
             {preview.description && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewDescription}>
-                📄 メモ欄にコピー
+                <FileText aria-hidden="true" />
+                メモ欄にコピー
               </button>
             )}
           </div>
@@ -326,27 +381,46 @@ function AddSpot({ user }) {
               disabled={aiLoading}
               style={{ marginTop: "10px" }}
             >
-              {aiLoading ? "AI抽出中..." : "🤖 AIで店名・エリア・住所候補を抽出"}
+              {aiLoading ? (
+                "AI抽出中..."
+              ) : (
+                <>
+                  <Bot aria-hidden="true" />
+                  AIで店名・エリア・住所候補を抽出
+                </>
+              )}
             </button>
           )}
         </div>
       )}
 
-      {aiError && <p className="previewError">ℹ️ {aiError}</p>}
+      {aiError && (
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          {aiError}
+        </p>
+      )}
 
       {aiResult?.mode === "unknown" && (
-        <p className="previewError">ℹ️ 自動抽出できませんでした。手入力してください。</p>
+        <p className="previewError">
+          <Info aria-hidden="true" className="inlineIcon" />
+          自動抽出できませんでした。手入力してください。
+        </p>
       )}
 
       {aiResult?.mode === "multiple" && aiResult.candidates.length === 0 && (
         <p className="previewError">
-          ℹ️ 候補を特定できませんでした。動画内で紹介されている可能性があります。手入力してください。
+          <Info aria-hidden="true" className="inlineIcon" />
+          候補を特定できませんでした。動画内で紹介されている可能性があります。手入力してください。
         </p>
       )}
 
       {aiResult?.mode === "multiple" && aiResult.candidates.length > 0 && (
         <div className="aiCandidatesBox fadeIn">
-          <p className="aiResultTitle">🤖 候補が複数見つかりました。どれを保存しますか？</p>
+          <p className="aiResultTitle">
+            <Bot aria-hidden="true" />
+            候補が複数見つかりました。どれを保存しますか？
+          </p>
           {aiResult.candidates.map((candidate, index) => (
             <div className="aiCandidateCard" key={index}>
               <p>店名：{candidate.placeName || "―"}</p>
@@ -360,11 +434,22 @@ function AddSpot({ user }) {
                   {candidate.sourceType && `（情報源：${describeSourceType(candidate.sourceType)}）`}
                 </p>
               )}
-              {candidate.reason && <p className="aiCandidateReason">💡 {candidate.reason}</p>}
-              {candidate.evidence && <p className="aiCandidateEvidence">📄 根拠：{candidate.evidence}</p>}
+              {candidate.reason && (
+                <p className="aiCandidateReason">
+                  <Lightbulb aria-hidden="true" className="inlineIcon" />
+                  {candidate.reason}
+                </p>
+              )}
+              {candidate.evidence && (
+                <p className="aiCandidateEvidence">
+                  <FileText aria-hidden="true" className="inlineIcon" />
+                  根拠：{candidate.evidence}
+                </p>
+              )}
               {candidate.geoSearchQueries?.length > 0 && (
                 <p className="aiCandidateQueries">
-                  🔍 地図検索候補：{candidate.geoSearchQueries.join(" / ")}
+                  <Search aria-hidden="true" className="inlineIcon" />
+                  地図検索候補：{candidate.geoSearchQueries.join(" / ")}
                 </p>
               )}
               <button
@@ -379,7 +464,12 @@ function AddSpot({ user }) {
         </div>
       )}
 
-      {errorMessage && <p className="errorMessage">⚠️ {errorMessage}</p>}
+      {errorMessage && (
+        <p className="errorMessage">
+          <AlertCircle aria-hidden="true" />
+          {errorMessage}
+        </p>
+      )}
 
       <input
         className="input"
@@ -409,7 +499,10 @@ function AddSpot({ user }) {
         <option>✈️ 旅行</option>
       </select>
 
-      <p className="sectionLabel">🔍 場所情報の補助入力（任意）</p>
+      <p className="sectionLabel">
+        <Search aria-hidden="true" />
+        場所情報の補助入力（任意）
+      </p>
 
       <input
         className="input"
@@ -471,7 +564,10 @@ function AddSpot({ user }) {
         {image ? (
           <img src={image} alt="プレビュー" />
         ) : (
-          <span className="imageUploadPlaceholder">📷 タップして画像を選択</span>
+          <span className="imageUploadPlaceholder">
+            <Camera aria-hidden="true" className="inlineIcon" />
+            タップして画像を選択
+          </span>
         )}
       </label>
 
