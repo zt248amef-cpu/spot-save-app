@@ -118,9 +118,11 @@ body {
 
 .cardSwipeWrapper {
   position: relative;
-  border-radius: 16px;
-  overflow: hidden;
   margin-bottom: 14px;
+  /* overflow:hidden は使わない。⋮メニューはこのラッパーの子である.card配下に
+     bottom基準で配置されており、上方向にラッパーの外まではみ出すため、
+     overflow:hiddenで切り取ると「▶ 元動画を見る」等がクリックできなくなる。
+     角丸は.cardSwipeActions側で個別に付ける。 */
 }
 
 .cardSwipeActions {
@@ -130,6 +132,8 @@ body {
   bottom: 0;
   width: 140px;
   display: flex;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .swipeActionButton {
