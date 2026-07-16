@@ -7,6 +7,16 @@ import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
+import {
+  saveExternalNavigationContext,
+  getPendingExternalNavigation,
+  clearPendingExternalNavigation,
+  hasAlreadyAttemptedReload,
+  markReloadAttempted,
+  isStandalonePwa,
+} from "./utils/externalNavigation";
+
+const isDev = import.meta.env.DEV;
 
 // ---- UUID方式に戻す場合はここを解除し、認証ブロックをコメントアウト ----
 // function getOrCreateUserId() {
@@ -25,6 +35,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [redirectChecking, setRedirectChecking] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [devInfo, setDevInfo] = useState(null);
 
   // ---- UUID方式に戻す場合はここを削除し、const user = { uid: USER_ID }; に戻す ----
   useEffect(() => {
@@ -47,16 +58,71 @@ function App() {
   }, []);
   // ---------------------------------------------------------------------------------
 
-  // Safariのback-forward cache（bfcache）から復元された場合を検知する。
-  // 現状は状態の強制リセットは行わず、診断用ログのみ（将来この処理が必要になった場合の起点）。
+  // 外部サイトへ離脱する直前（pagehide）に復帰用の情報を保存する。
+  // openExternalUrl でも遷移前に保存しているが、想定していない離脱経路
+  // （バックグラウンド化・OSによる強制中断など）にも備えるための保険。
   useEffect(() => {
-    const handlePageShow = (event) => {
-      if (event.persisted) {
-        console.log("bfcacheからページが復元されました");
-      }
+    const handlePageHide = () => {
+      saveExternalNavigationContext();
     };
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, []);
+
+  // 外部遷移からの復帰を検知し、実際に画面の復旧処理を行う。
+  // 1. pageshow / visibilitychange で「戻ってきた」タイミングを検知
+  // 2. 「外部遷移中」フラグが残っているか確認（=戻ってきたことの裏付け）
+  // 3. Reactのルート要素に実際に内容が描画されているか確認
+  // 4. 描画が失われていた場合のみ、無限リロードを防ぐため1回限定で再読み込みする
+  useEffect(() => {
+    const attemptRecovery = (event) => {
+      if (isDev) {
+        setDevInfo((prev) => ({
+          ...prev,
+          lastEvent: event?.type ?? "unknown",
+          persisted: event?.persisted ?? null,
+          visibilityState: document.visibilityState,
+          pendingNav: !!getPendingExternalNavigation(),
+          reloadAttempted: hasAlreadyAttemptedReload(),
+          standalone: isStandalonePwa(),
+          updatedAt: new Date().toLocaleTimeString("ja-JP"),
+        }));
+      }
+
+      if (document.visibilityState !== "visible") return;
+
+      const pending = getPendingExternalNavigation();
+      if (!pending) return;
+
+      // 検知したら、以後同じ状態のまま繰り返し走らないよう先にクリアする
+      clearPendingExternalNavigation();
+
+      const root = document.getElementById("root");
+      const rootHasContent = !!root && root.childElementCount > 0;
+
+      if (rootHasContent) {
+        if (isDev) console.log("外部遷移から正常に復帰しました", pending);
+        return;
+      }
+
+      if (hasAlreadyAttemptedReload()) {
+        console.error(
+          "外部遷移からの復帰後に画面の描画が失われていますが、既に再読み込み済みのため自動では行いません"
+        );
+        return;
+      }
+
+      console.warn("外部遷移からの復帰後に画面の描画が失われていたため、1回だけ再読み込みします");
+      markReloadAttempted();
+      window.location.reload();
+    };
+
+    window.addEventListener("pageshow", attemptRecovery);
+    document.addEventListener("visibilitychange", attemptRecovery);
+    return () => {
+      window.removeEventListener("pageshow", attemptRecovery);
+      document.removeEventListener("visibilitychange", attemptRecovery);
+    };
   }, []);
 
   // authLoading / redirectChecking が何らかの理由（bfcache復元時に絡む処理の停止など）で
@@ -97,12 +163,38 @@ function App() {
     return unsubscribe;
   }, [user]);
 
+  // 開発モードのみ、実機確認をしやすくするための簡易診断表示。
+  // APIキーや個人情報は一切含まない（standalone判定・イベント名・時刻のみ）。
+  const devOverlay = isDev && devInfo && (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 8,
+        left: 8,
+        right: 8,
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.75)",
+        color: "#0f0",
+        fontSize: 11,
+        fontFamily: "monospace",
+        padding: "6px 8px",
+        borderRadius: 8,
+        pointerEvents: "none",
+      }}
+    >
+      [{devInfo.updatedAt}] event={devInfo.lastEvent} persisted={String(devInfo.persisted)} visibility=
+      {devInfo.visibilityState} pendingNav={String(devInfo.pendingNav)} reloadAttempted=
+      {String(devInfo.reloadAttempted)} standalone={String(devInfo.standalone)}
+    </div>
+  );
+
   if (authLoading || redirectChecking) {
     return (
       <div className="app">
         <div className="phone" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           <p style={{ color: "#aaa" }}>{redirectChecking ? "ログイン確認中..." : "読み込み中..."}</p>
         </div>
+        {devOverlay}
       </div>
     );
   }
@@ -126,6 +218,7 @@ function App() {
             />
           </Routes>
         </div>
+        {devOverlay}
       </div>
     </BrowserRouter>
   );

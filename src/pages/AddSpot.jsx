@@ -10,6 +10,7 @@ import {
   describeSourceType,
 } from "../services/aiExtractionService";
 import { isValidUrl, normalizeUrl, resolveExtractionStatus } from "../utils/urlUtils";
+import { openExternalUrl } from "../utils/externalNavigation";
 
 const aiExtractionAvailable = isAiExtractionAvailable();
 
@@ -47,7 +48,7 @@ function AddSpot({ user }) {
 
   const handleCheckUrl = () => {
     if (!url.trim()) return;
-    window.open(normalizeUrl(url), "_blank", "noopener,noreferrer");
+    openExternalUrl(url);
   };
 
   const handleUrlChange = (e) => {

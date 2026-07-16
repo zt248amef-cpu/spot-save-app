@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { detectSns, normalizeUrl, resolveSpotImage } from "../utils/urlUtils";
+import { openExternalUrl } from "../utils/externalNavigation";
 
 function formatSavedAt(createdAt) {
   if (!createdAt) return "";
@@ -41,14 +42,14 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
       return;
     }
     if (!spot.url?.trim()) return;
-    window.open(normalizeUrl(spot.url), "_blank", "noopener,noreferrer");
+    openExternalUrl(spot.url);
   };
 
   const handleOpenOriginal = (e) => {
     e.stopPropagation();
     setMenuOpen(false);
     if (!spot.url?.trim()) return;
-    window.open(normalizeUrl(spot.url), "_blank", "noopener,noreferrer");
+    openExternalUrl(spot.url);
   };
 
   const handleToggleMenu = (e) => {
@@ -78,11 +79,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
     e.stopPropagation();
     setMenuOpen(false);
     const query = spot.place?.trim() || spot.title;
-    window.open(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
   };
 
   const handleShare = async (e) => {

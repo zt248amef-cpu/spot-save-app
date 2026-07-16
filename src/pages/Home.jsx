@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SpotCard from "../components/SpotCard";
 import { Link, useLocation } from "react-router-dom";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
@@ -9,16 +9,56 @@ import {
   isInAppBrowser,
   IN_APP_BROWSER_ERROR_CODE,
 } from "../services/authService";
+import { consumeSavedScrollY } from "../utils/externalNavigation";
+
+const QUERY_KEY = "spotsave_homeQuery";
+const CATEGORY_KEY = "spotsave_homeCategory";
+
+function safeSessionGet(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionSet(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // noop
+  }
+}
 
 function Home({ spots, user, loading, authError }) {
   const location = useLocation();
-  const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("すべて");
+  const [query, setQuery] = useState(() => safeSessionGet(QUERY_KEY) ?? "");
+  const [selectedCategory, setSelectedCategory] = useState(() => safeSessionGet(CATEGORY_KEY) ?? "すべて");
   const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
   const [highlightedId, setHighlightedId] = useState(location.state?.savedSpotId ?? null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loginError, setLoginError] = useState("");
   const [urlCopied, setUrlCopied] = useState(false);
+  const scrollRestored = useRef(false);
+
+  useEffect(() => {
+    safeSessionSet(QUERY_KEY, query);
+  }, [query]);
+
+  useEffect(() => {
+    safeSessionSet(CATEGORY_KEY, selectedCategory);
+  }, [selectedCategory]);
+
+  // 外部サイトから復帰した直後、スポット一覧の読み込み完了後に一度だけ
+  // 離脱前のスクロール位置へ戻す（検索・カテゴリ状態は上のuseStateで既に復元済み）
+  useEffect(() => {
+    if (loading || scrollRestored.current) return;
+    scrollRestored.current = true;
+    const savedScrollY = consumeSavedScrollY();
+    if (savedScrollY != null) {
+      window.scrollTo({ top: savedScrollY, behavior: "auto" });
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!showSaved) return;
