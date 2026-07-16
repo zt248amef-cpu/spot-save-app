@@ -11,8 +11,8 @@ import {
   Info,
   AlertCircle,
   Lightbulb,
-  Search,
   Camera,
+  ChevronDown,
 } from "lucide-react";
 import { addSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
@@ -23,15 +23,13 @@ import {
   describeLocationConfidence,
   describeSourceType,
 } from "../services/aiExtractionService";
-import { isValidUrl, normalizeUrl, resolveExtractionStatus } from "../utils/urlUtils";
-import { openExternalUrl } from "../utils/externalNavigation";
+import { isValidUrl, normalizeUrl, resolveExtractionStatus, stripLeadingEmoji } from "../utils/urlUtils";
 
 const aiExtractionAvailable = isAiExtractionAvailable();
 
 function AddSpot({ user }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [place, setPlace] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
   const [url, setUrl] = useState("");
   const [placeName, setPlaceName] = useState("");
@@ -60,11 +58,6 @@ function AddSpot({ user }) {
     reader.readAsDataURL(file);
   };
 
-  const handleCheckUrl = () => {
-    if (!url.trim()) return;
-    openExternalUrl(url);
-  };
-
   const handleUrlChange = (e) => {
     setUrl(e.target.value);
     setPreview(null);
@@ -74,7 +67,23 @@ function AddSpot({ user }) {
     setAppliedInfo(null);
   };
 
-  const handleFetchPreview = async () => {
+  // AI抽出結果（single時）または選択された候補（multiple時）を
+  // フォームへ反映し、ワンタップ保存の確認カードを表示する
+  const applyExtractedInfo = (info) => {
+    if (!info) return;
+    if (info.placeName) {
+      setPlaceName(info.placeName);
+      setName(info.placeName);
+    }
+    if (info.area) setArea(info.area);
+    if (info.addressCandidate) setAddressCandidate(info.addressCandidate);
+    if (info.category) setCategory(info.category);
+    setAppliedInfo(info);
+    setShowQuickConfirm(true);
+  };
+
+  // URL入力から投稿情報の取得とAI抽出を1回の操作でまとめて行う
+  const handleFetchAndExtract = async () => {
     if (!url.trim() || previewLoading) return;
     if (!isValidUrl(url)) {
       setPreviewError("http または https で始まる正しいURLを入力してください");
@@ -83,12 +92,33 @@ function AddSpot({ user }) {
     setPreviewLoading(true);
     setPreviewError("");
     setPreview(null);
+    setAiResult(null);
+    setAiError("");
     try {
       const result = await fetchOEmbedPreview(url);
       if (!result) {
         setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
-      } else {
-        setPreview(result);
+        return;
+      }
+      setPreview(result);
+      if (aiExtractionAvailable) {
+        setAiLoading(true);
+        try {
+          const extracted = await extractPlaceInfo({ caption: result.caption, description: result.description });
+          if (!extracted) {
+            setAiError("AI抽出に失敗しました。手動で入力してください");
+          } else {
+            setAiResult(extracted);
+            if (extracted.mode === "single") {
+              applyExtractedInfo(extracted);
+            }
+          }
+        } catch (e) {
+          console.error("AI抽出に失敗しました:", e);
+          setAiError("AI抽出に失敗しました。手動で入力してください");
+        } finally {
+          setAiLoading(false);
+        }
       }
     } catch (e) {
       console.error("投稿情報の取得に失敗しました:", e);
@@ -113,46 +143,6 @@ function AddSpot({ user }) {
     setMemo(preview.description.slice(0, 2000));
   };
 
-  // AI抽出結果（single時）または選択された候補（multiple時）を
-  // フォームへ反映し、ワンタップ保存の確認カードを表示する
-  const applyExtractedInfo = (info) => {
-    if (!info) return;
-    if (info.placeName) {
-      setPlaceName(info.placeName);
-      setName(info.placeName);
-    }
-    if (info.area) setArea(info.area);
-    if (info.addressCandidate) setAddressCandidate(info.addressCandidate);
-    const combinedPlace = [info.area, info.addressCandidate].filter(Boolean).join(" ");
-    if (combinedPlace) setPlace(combinedPlace);
-    if (info.category) setCategory(info.category);
-    setAppliedInfo(info);
-    setShowQuickConfirm(true);
-  };
-
-  const handleAiExtract = async () => {
-    if (!preview || aiLoading) return;
-    setAiLoading(true);
-    setAiError("");
-    setAiResult(null);
-    try {
-      const result = await extractPlaceInfo({ caption: preview.caption, description: preview.description });
-      if (!result) {
-        setAiError("AI抽出に失敗しました。手動で入力してください");
-      } else {
-        setAiResult(result);
-        if (result.mode === "single") {
-          applyExtractedInfo(result);
-        }
-      }
-    } catch (e) {
-      console.error("AI抽出に失敗しました:", e);
-      setAiError("AI抽出に失敗しました。手動で入力してください");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   const handleApplyCandidate = (candidate) => applyExtractedInfo(candidate);
 
   const handleSave = async () => {
@@ -165,13 +155,15 @@ function AddSpot({ user }) {
       setErrorMessage("http または https で始まる正しいURLを入力してください");
       return;
     }
-    if (!name.trim() || !place.trim()) {
-      setErrorMessage("店名と場所を入力してください");
+    if (!name.trim() || !area.trim()) {
+      setErrorMessage("店名とエリアを入力してください");
       return;
     }
     setErrorMessage("");
     setSaving(true);
     try {
+      // 住所が分かっていれば地図検索の精度向上のためエリアと合わせて使う
+      const place = [area, addressCandidate].filter((v) => v?.trim()).join(" ") || area.trim();
       let resolvedLat = lat.trim() !== "" ? parseFloat(lat) : null;
       let resolvedLng = lng.trim() !== "" ? parseFloat(lng) : null;
       if (resolvedLat == null || resolvedLng == null) {
@@ -195,7 +187,6 @@ function AddSpot({ user }) {
         lng: resolvedLng,
       });
       setName("");
-      setPlace("");
       setCategory("☕ カフェ");
       setUrl("");
       setPlaceName("");
@@ -218,7 +209,7 @@ function AddSpot({ user }) {
     }
   };
 
-  const canSave = !!user && name.trim() !== "" && place.trim() !== "" && url.trim() !== "" && !saving;
+  const canSave = !!user && name.trim() !== "" && area.trim() !== "" && url.trim() !== "" && !saving;
 
   if (showQuickConfirm) {
     return (
@@ -236,17 +227,23 @@ function AddSpot({ user }) {
             AIが抽出しました
           </p>
           <div className="quickConfirmDivider" />
-          <p className="quickConfirmRow"><strong>店名</strong>：{placeName || "―"}</p>
+          <p className="quickConfirmRow"><strong>店名</strong>：{placeName || name || "―"}</p>
           <p className="quickConfirmRow"><strong>エリア</strong>：{area || "―"}</p>
-          <p className="quickConfirmRow"><strong>住所</strong>：{addressCandidate || "―"}</p>
-          <p className="quickConfirmRow"><strong>カテゴリ</strong>：{category || "―"}</p>
-          {appliedInfo?.locationConfidence && (
-            <p className="quickConfirmRow">
-              <strong>地図検索信頼度</strong>：
-              {describeLocationConfidence(appliedInfo.locationConfidence).icon}{" "}
-              {describeLocationConfidence(appliedInfo.locationConfidence).label}
-            </p>
+          {addressCandidate && <p className="quickConfirmRow"><strong>住所</strong>：{addressCandidate}</p>}
+          <p className="quickConfirmRow"><strong>カテゴリ</strong>：{stripLeadingEmoji(category) || category}</p>
+
+          {appliedInfo && (appliedInfo.locationConfidence || appliedInfo.sourceType) && (
+            <details className="aiEvidenceDetails">
+              <summary>AIの判断根拠を見る</summary>
+              <div>
+                {appliedInfo.locationConfidence && (
+                  <p>地図情報の確かさ：{describeLocationConfidence(appliedInfo.locationConfidence).label}</p>
+                )}
+                {appliedInfo.sourceType && <p>情報元：{describeSourceType(appliedInfo.sourceType)}</p>}
+              </div>
+            </details>
           )}
+
           <div className="quickConfirmDivider" />
 
           {!canSave && (
@@ -281,10 +278,13 @@ function AddSpot({ user }) {
     );
   }
 
+  const showRawPreview = !!preview && (!aiExtractionAvailable || aiResult?.mode === "unknown" || !!aiError);
+
   return (
     <>
       <Link to="/" className="backButton">
-        ← 戻る
+        <ArrowLeft aria-hidden="true" />
+        戻る
       </Link>
 
       <h1 className="title">URLを貼って保存</h1>
@@ -302,22 +302,17 @@ function AddSpot({ user }) {
         />
         <button
           className="analyzeButton"
-          onClick={handleCheckUrl}
-          disabled={!url.trim()}
-        >
-          URL確認
-        </button>
-        <button
-          className="analyzeButton"
-          onClick={handleFetchPreview}
-          disabled={!url.trim() || previewLoading}
+          onClick={handleFetchAndExtract}
+          disabled={!url.trim() || previewLoading || aiLoading}
         >
           {previewLoading ? (
             "取得中..."
+          ) : aiLoading ? (
+            "AI抽出中..."
           ) : (
             <>
               <Clipboard aria-hidden="true" />
-              投稿情報を取得（TikTok/YouTube/X対応）
+              投稿情報を取得
             </>
           )}
         </button>
@@ -330,7 +325,7 @@ function AddSpot({ user }) {
         </p>
       )}
 
-      {preview && (
+      {showRawPreview && (
         <div className="previewBox fadeIn">
           {preview.thumbnailUrl && (
             <img className="previewThumbnail" src={preview.thumbnailUrl} alt="投稿サムネイル" />
@@ -356,7 +351,7 @@ function AddSpot({ user }) {
           <div className="previewActions">
             {preview.caption && (
               <button type="button" className="previewApplyButton" onClick={handleApplyPreviewCaption}>
-                店名・場所名欄にコピー
+                店名欄にコピー
               </button>
             )}
             {preview.thumbnailUrl && (
@@ -372,25 +367,6 @@ function AddSpot({ user }) {
               </button>
             )}
           </div>
-
-          {aiExtractionAvailable && (
-            <button
-              type="button"
-              className="analyzeButton"
-              onClick={handleAiExtract}
-              disabled={aiLoading}
-              style={{ marginTop: "10px" }}
-            >
-              {aiLoading ? (
-                "AI抽出中..."
-              ) : (
-                <>
-                  <Bot aria-hidden="true" />
-                  AIで店名・エリア・住所候補を抽出
-                </>
-              )}
-            </button>
-          )}
         </div>
       )}
 
@@ -398,13 +374,6 @@ function AddSpot({ user }) {
         <p className="previewError">
           <Info aria-hidden="true" className="inlineIcon" />
           {aiError}
-        </p>
-      )}
-
-      {aiResult?.mode === "unknown" && (
-        <p className="previewError">
-          <Info aria-hidden="true" className="inlineIcon" />
-          自動抽出できませんでした。手入力してください。
         </p>
       )}
 
@@ -425,33 +394,35 @@ function AddSpot({ user }) {
             <div className="aiCandidateCard" key={index}>
               <p>店名：{candidate.placeName || "―"}</p>
               <p>エリア：{candidate.area || "―"}</p>
-              <p>住所候補：{candidate.addressCandidate || "―"}</p>
+              {candidate.addressCandidate && <p>住所：{candidate.addressCandidate}</p>}
               <p>カテゴリ：{candidate.category || "―"}</p>
-              {candidate.locationConfidence && (
-                <p className="aiCandidateConfidence">
-                  {describeLocationConfidence(candidate.locationConfidence).icon} 地図検索信頼度：
-                  {describeLocationConfidence(candidate.locationConfidence).label}
-                  {candidate.sourceType && `（情報源：${describeSourceType(candidate.sourceType)}）`}
-                </p>
+
+              {(candidate.reason ||
+                candidate.locationConfidence ||
+                candidate.sourceType ||
+                candidate.evidence ||
+                candidate.geoSearchQueries?.length > 0) && (
+                <details className="aiEvidenceDetails">
+                  <summary>AIの判断根拠を見る</summary>
+                  <div>
+                    {candidate.reason && (
+                      <p>
+                        <Lightbulb aria-hidden="true" className="inlineIcon" />
+                        {candidate.reason}
+                      </p>
+                    )}
+                    {candidate.locationConfidence && (
+                      <p>地図情報の確かさ：{describeLocationConfidence(candidate.locationConfidence).label}</p>
+                    )}
+                    {candidate.sourceType && <p>情報元：{describeSourceType(candidate.sourceType)}</p>}
+                    {candidate.evidence && <p>AIの判断根拠：{candidate.evidence}</p>}
+                    {candidate.geoSearchQueries?.length > 0 && (
+                      <p>地図検索候補：{candidate.geoSearchQueries.join(" / ")}</p>
+                    )}
+                  </div>
+                </details>
               )}
-              {candidate.reason && (
-                <p className="aiCandidateReason">
-                  <Lightbulb aria-hidden="true" className="inlineIcon" />
-                  {candidate.reason}
-                </p>
-              )}
-              {candidate.evidence && (
-                <p className="aiCandidateEvidence">
-                  <FileText aria-hidden="true" className="inlineIcon" />
-                  根拠：{candidate.evidence}
-                </p>
-              )}
-              {candidate.geoSearchQueries?.length > 0 && (
-                <p className="aiCandidateQueries">
-                  <Search aria-hidden="true" className="inlineIcon" />
-                  地図検索候補：{candidate.geoSearchQueries.join(" / ")}
-                </p>
-              )}
+
               <button
                 type="button"
                 className="previewApplyButton"
@@ -474,7 +445,7 @@ function AddSpot({ user }) {
       <input
         className="input"
         type="text"
-        placeholder="店名を入力"
+        placeholder="店名"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
@@ -482,9 +453,9 @@ function AddSpot({ user }) {
       <input
         className="input"
         type="text"
-        placeholder="場所を入力"
-        value={place}
-        onChange={(e) => setPlace(e.target.value)}
+        placeholder="エリア"
+        value={area}
+        onChange={(e) => setArea(e.target.value)}
       />
 
       <select
@@ -499,77 +470,72 @@ function AddSpot({ user }) {
         <option>✈️ 旅行</option>
       </select>
 
-      <p className="sectionLabel">
-        <Search aria-hidden="true" />
-        場所情報の補助入力（任意）
-      </p>
+      <details className="detailsToggle">
+        <summary>
+          <ChevronDown aria-hidden="true" />
+          詳細を追加
+        </summary>
+        <div className="detailsContent">
+          <input
+            className="input"
+            type="text"
+            placeholder="店名（表示用に上書き）"
+            value={placeName}
+            onChange={(e) => setPlaceName(e.target.value)}
+          />
 
-      <input
-        className="input"
-        type="text"
-        placeholder="店名・場所名（任意）"
-        value={placeName}
-        onChange={(e) => setPlaceName(e.target.value)}
-      />
+          <input
+            className="input"
+            type="text"
+            placeholder="住所"
+            value={addressCandidate}
+            onChange={(e) => setAddressCandidate(e.target.value)}
+          />
 
-      <input
-        className="input"
-        type="text"
-        placeholder="エリア（任意）"
-        value={area}
-        onChange={(e) => setArea(e.target.value)}
-      />
+          <textarea
+            className="input"
+            placeholder="メモ"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            style={{ height: "80px", resize: "none" }}
+          />
 
-      <input
-        className="input"
-        type="text"
-        placeholder="住所候補（任意）"
-        value={addressCandidate}
-        onChange={(e) => setAddressCandidate(e.target.value)}
-      />
+          <div className="latLngRow">
+            <input
+              className="input"
+              type="number"
+              placeholder="緯度（空欄で自動取得）"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+            />
+            <input
+              className="input"
+              type="number"
+              placeholder="経度（空欄で自動取得）"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+            />
+          </div>
 
-      <textarea
-        className="input"
-        placeholder="メモ（任意）"
-        value={memo}
-        onChange={(e) => setMemo(e.target.value)}
-        style={{ height: "80px", resize: "none" }}
-      />
-
-      <div className="latLngRow">
-        <input
-          className="input"
-          type="number"
-          placeholder="緯度（空白で自動取得）"
-          value={lat}
-          onChange={(e) => setLat(e.target.value)}
-        />
-        <input
-          className="input"
-          type="number"
-          placeholder="経度（空白で自動取得）"
-          value={lng}
-          onChange={(e) => setLng(e.target.value)}
-        />
-      </div>
-
-      <input
-        id="imageInput"
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={handleImageChange}
-      />
-      <label htmlFor="imageInput" className="imageUpload">
-        {image ? (
-          <img src={image} alt="プレビュー" />
-        ) : (
-          <span className="imageUploadPlaceholder">
-            <Camera aria-hidden="true" className="inlineIcon" />
-            タップして画像を選択
-          </span>
-        )}
-      </label>
+          <input
+            id="imageInput"
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleImageChange}
+          />
+          <label htmlFor="imageInput" className="imageUpload">
+            {image ? (
+              <img src={image} alt="プレビュー" />
+            ) : (
+              <span className="imageUploadPlaceholder">
+                <Camera aria-hidden="true" className="inlineIcon" />
+                画像を選択
+              </span>
+            )}
+          </label>
+        </div>
+      </details>
 
       <div className="stickyActionBarSpacer" />
 

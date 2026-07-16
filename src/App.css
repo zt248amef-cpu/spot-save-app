@@ -646,12 +646,83 @@ body {
 }
 
 .previewError {
+  display: flex;
+  align-items: center;
   color: #92700c;
   background: #fff7e0;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   font-size: 13px;
   margin-bottom: 16px;
+}
+
+/* 「詳細を追加」— 通常は隠している補助項目を開くトグル */
+.detailsToggle {
+  margin-bottom: var(--space-5);
+}
+
+.detailsToggle summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: var(--text-body);
+  list-style: none;
+  padding: var(--space-3) 0;
+}
+
+.detailsToggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.detailsToggle summary svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  transition: transform 0.15s ease;
+}
+
+.detailsToggle[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.detailsContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.detailsContent > * {
+  margin-bottom: 0;
+}
+
+/* 「AIの判断根拠を見る」— confidence/sourceType/evidence等の技術的な情報を
+   通常は隠しておき、必要な人だけが開ける小さな折りたたみ */
+.aiEvidenceDetails {
+  margin-top: var(--space-2);
+}
+
+.aiEvidenceDetails summary {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  list-style: none;
+}
+
+.aiEvidenceDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.aiEvidenceDetails > div {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
 }
 
 .previewBox {
