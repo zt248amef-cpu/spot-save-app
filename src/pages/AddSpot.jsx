@@ -47,7 +47,7 @@ function AddSpot({ user }) {
 
   const handleCheckUrl = () => {
     if (!url.trim()) return;
-    window.open(normalizeUrl(url), "_blank");
+    window.open(normalizeUrl(url), "_blank", "noopener,noreferrer");
   };
 
   const handleUrlChange = (e) => {

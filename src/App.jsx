@@ -47,6 +47,35 @@ function App() {
   }, []);
   // ---------------------------------------------------------------------------------
 
+  // Safariのback-forward cache（bfcache）から復元された場合を検知する。
+  // 現状は状態の強制リセットは行わず、診断用ログのみ（将来この処理が必要になった場合の起点）。
+  useEffect(() => {
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        console.log("bfcacheからページが復元されました");
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
+  // authLoading / redirectChecking が何らかの理由（bfcache復元時に絡む処理の停止など）で
+  // 解決しないまま固まった場合の安全策。一定時間後も残っていれば強制的に解除し、
+  // 画面が永久に「読み込み中...」のままにならないようにする。
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuthLoading((prev) => {
+        if (prev) console.warn("authLoadingが長時間解決しないため安全策として解除しました");
+        return false;
+      });
+      setRedirectChecking((prev) => {
+        if (prev) console.warn("redirectCheckingが長時間解決しないため安全策として解除しました");
+        return false;
+      });
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (!user) {
       setSpots([]);

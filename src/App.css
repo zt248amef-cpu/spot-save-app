@@ -24,6 +24,37 @@ body {
   box-shadow: 0 10px 30px rgba(0,0,0,.08);
 }
 
+.errorBoundaryScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.errorBoundaryIcon {
+  font-size: 40px;
+}
+
+.errorBoundaryTitle {
+  font-weight: bold;
+  color: #333;
+  font-size: 16px;
+}
+
+.errorBoundarySubtitle {
+  color: #888;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.errorBoundaryButton {
+  width: auto;
+  padding: 12px 28px;
+  margin-bottom: 0;
+}
+
 .title {
   text-align: center;
   font-size: 32px;

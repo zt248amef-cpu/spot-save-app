@@ -41,7 +41,14 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
       return;
     }
     if (!spot.url?.trim()) return;
-    window.open(normalizeUrl(spot.url), "_blank");
+    window.open(normalizeUrl(spot.url), "_blank", "noopener,noreferrer");
+  };
+
+  const handleOpenOriginal = (e) => {
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (!spot.url?.trim()) return;
+    window.open(normalizeUrl(spot.url), "_blank", "noopener,noreferrer");
   };
 
   const handleToggleMenu = (e) => {
@@ -73,7 +80,8 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
     const query = spot.place?.trim() || spot.title;
     window.open(
       `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-      "_blank"
+      "_blank",
+      "noopener,noreferrer"
     );
   };
 
@@ -160,6 +168,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted }) {
 
       {menuOpen && (
         <div className="cardMenu" onClick={(e) => e.stopPropagation()}>
+          {spot.url?.trim() && <button onClick={handleOpenOriginal}>▶️ 元動画を見る</button>}
           <button onClick={handleMap}>🗺️ 地図で見る</button>
           <button onClick={handleEdit}>✏️ 編集</button>
           <button onClick={handleShare}>🔗 {shareCopied ? "コピーしました" : "共有"}</button>
