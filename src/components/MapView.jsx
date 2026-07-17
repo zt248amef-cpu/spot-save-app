@@ -1,6 +1,8 @@
+import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Map as MapIcon, MapPin } from "lucide-react";
+import { trackScreenView } from "../services/analyticsService";
 import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -16,11 +18,29 @@ L.Icon.Default.mergeOptions({
 const TOKYO = [35.6762, 139.6503];
 
 function MapView({ spots }) {
+  const sectionRef = useRef(null);
   const pinned = spots.filter((s) => s.lat != null && s.lng != null);
   const center = pinned.length > 0 ? [pinned[0].lat, pinned[0].lng] : TOKYO;
 
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        trackScreenView("Map", "map-section");
+        observer.disconnect();
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="mapSection">
+    <div className="mapSection" ref={sectionRef}>
       <p className="mapLabel">
         <MapIcon aria-hidden="true" />
         地図

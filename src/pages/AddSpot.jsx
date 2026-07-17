@@ -23,6 +23,7 @@ import {
   describeLocationConfidence,
   describeSourceType,
 } from "../services/aiExtractionService";
+import { trackSpotSaved } from "../services/analyticsService";
 import { isValidUrl, normalizeUrl, resolveExtractionStatus, stripLeadingEmoji } from "../utils/urlUtils";
 
 const aiExtractionAvailable = isAiExtractionAvailable();
@@ -172,11 +173,12 @@ function AddSpot({ user }) {
       }
       // クイック保存・通常保存のどちらでも、手動設定がなければ投稿のサムネイルを画像として使う
       const finalImage = image || preview?.thumbnailUrl || "";
+      const normalizedUrl = normalizeUrl(url);
       const newSpotId = await addSpot(user.uid, {
         title: name,
         place,
         category,
-        url: normalizeUrl(url),
+        url: normalizedUrl,
         placeName,
         area,
         addressCandidate,
@@ -185,6 +187,11 @@ function AddSpot({ user }) {
         memo,
         lat: resolvedLat,
         lng: resolvedLng,
+      });
+      trackSpotSaved({
+        url: normalizedUrl,
+        category,
+        aiExtractSuccess: !!appliedInfo,
       });
       setName("");
       setCategory("☕ カフェ");

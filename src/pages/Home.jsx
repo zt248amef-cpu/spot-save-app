@@ -27,6 +27,7 @@ import {
   isInAppBrowser,
   IN_APP_BROWSER_ERROR_CODE,
 } from "../services/authService";
+import { trackLogin } from "../services/analyticsService";
 import { consumeSavedScrollY } from "../utils/externalNavigation";
 import { stripLeadingEmoji } from "../utils/urlUtils";
 
@@ -164,6 +165,7 @@ function Home({ spots, user, loading, authError }) {
     setLoginError("");
     try {
       await signInWithGoogle();
+      trackLogin();
     } catch (e) {
       console.error("ログインに失敗しました:", e.code);
       if (e.code === IN_APP_BROWSER_ERROR_CODE) {

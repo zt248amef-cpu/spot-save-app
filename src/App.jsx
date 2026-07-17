@@ -6,8 +6,10 @@ import Home from "./pages/Home";
 import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
 import SpotDetail from "./pages/SpotDetail";
+import ScreenViewTracker from "./components/ScreenViewTracker";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
+import { trackAppOpen } from "./services/analyticsService";
 import {
   saveExternalNavigationContext,
   getPendingExternalNavigation,
@@ -37,6 +39,10 @@ function App() {
   const [redirectChecking, setRedirectChecking] = useState(true);
   const [authError, setAuthError] = useState("");
   const [devInfo, setDevInfo] = useState(null);
+
+  useEffect(() => {
+    trackAppOpen();
+  }, []);
 
   // ---- UUID方式に戻す場合はここを削除し、const user = { uid: USER_ID }; に戻す ----
   useEffect(() => {
@@ -202,6 +208,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScreenViewTracker />
       <div className="app">
         <div className="phone">
           <Routes>
