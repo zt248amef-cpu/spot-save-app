@@ -267,9 +267,9 @@ function AddSpot({ user }) {
           )}
         </div>
 
-        <div className="stickyActionBarSpacer" />
+        <div className="formActionSpacer" />
 
-        <div className="stickyActionBar">
+        <div className="formActionBar">
           <button className="saveButton" onClick={handleSave} disabled={!canSave}>
             {saving ? "保存中..." : "保存する"}
           </button>
@@ -544,9 +544,9 @@ function AddSpot({ user }) {
         </div>
       </details>
 
-      <div className="stickyActionBarSpacer" />
+      <div className="formActionSpacer" />
 
-      <div className="stickyActionBar">
+      <div className="formActionBar">
         <button className="saveButton" onClick={handleSave} disabled={!canSave}>
           {saving ? "保存中..." : "保存"}
         </button>

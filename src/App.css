@@ -57,7 +57,7 @@
 }
 
 body {
-  background: #f4f4f4;
+  background: #f6f6f8;
 }
 
 .app {
@@ -69,9 +69,9 @@ body {
 .phone {
   width: 390px;
   min-height: 100vh;
-  background: white;
+  background: #f6f6f8;
   border-radius: 24px;
-  padding: 24px;
+  padding: 24px 24px calc(128px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 10px 30px rgba(0,0,0,.08);
 }
 
@@ -196,6 +196,44 @@ body {
   outline-offset: 2px;
 }
 
+.minimalFilters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.minimalFilters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--tap-target-min);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-chip);
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.minimalFilters button svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.minimalFilters button.active {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: white;
+}
+
+.minimalFilters button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .saveButton {
   display: flex;
   align-items: center;
@@ -230,7 +268,7 @@ body {
 
 .cardSwipeWrapper {
   position: relative;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   /* overflow:hidden は使わない。⋮メニューはこのラッパーの子である.card配下に
      bottom基準で配置されており、上方向にラッパーの外まではみ出すため、
      overflow:hiddenで切り取ると「▶ 元動画を見る」等がクリックできなくなる。
@@ -282,22 +320,26 @@ body {
 
 .card {
   display: flex;
-  gap: var(--space-4);
+  flex-direction: column;
+  gap: 0;
   background: var(--surface);
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
+  border-radius: 16px;
+  border: 1px solid rgba(20, 20, 30, 0.06);
+  box-shadow: 0 2px 10px rgba(20, 20, 30, 0.04);
+  padding: 0;
   position: relative;
   cursor: pointer;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .card img,
 .cardThumbnailPlaceholder {
-  width: 108px;
-  height: 108px;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  height: auto;
   object-fit: cover;
-  border-radius: var(--radius-chip);
+  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -312,20 +354,21 @@ body {
 .info {
   flex: 1;
   min-width: 0;
+  padding: 16px 16px 18px;
 }
 
 .cardHeaderRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-  padding-right: var(--space-1);
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding-right: 0;
 }
 
 .cardTitle {
-  font-size: var(--text-title);
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   color: var(--text-primary);
   line-height: 1.35;
   min-width: 0;
@@ -338,6 +381,10 @@ body {
 }
 
 .favoriteButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -389,16 +436,16 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  margin-bottom: 0;
 }
 
 .metaItem {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--surface-muted);
+  background: #f7f7f8;
   color: var(--text-secondary);
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: var(--radius-badge);
   font-size: var(--text-caption);
   max-width: 100%;
@@ -414,8 +461,9 @@ body {
 }
 
 .categoryTag {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .snsBadge {
@@ -425,7 +473,7 @@ body {
 }
 
 .cardMemoBlock {
-  margin-bottom: 6px;
+  display: none;
 }
 
 .cardMemo {
@@ -456,7 +504,7 @@ body {
 }
 
 .savedAt {
-  display: flex !important;
+  display: none !important;
   align-items: center;
   gap: 4px;
   color: var(--text-tertiary) !important;
@@ -474,18 +522,20 @@ body {
 
 .menuButton {
   position: absolute;
-  bottom: 4px;
-  right: 6px;
+  top: 8px;
+  left: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  background: none;
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   color: var(--text-tertiary);
   padding: 0;
   width: var(--tap-target-min);
   height: var(--tap-target-min);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(20, 20, 30, 0.08);
 }
 
 .menuButton:hover,
@@ -501,8 +551,9 @@ body {
 
 .cardMenu {
   position: absolute;
-  bottom: 40px;
-  right: 6px;
+  top: 52px;
+  left: 8px;
+  right: auto;
   background: var(--surface);
   border-radius: var(--radius-chip);
   box-shadow: var(--shadow-elevated);
@@ -788,8 +839,8 @@ body {
   align-items: center;
   gap: 4px;
   border: none;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   padding: 8px 14px;
   border-radius: var(--radius-badge);
   font-size: 13px;
@@ -803,8 +854,8 @@ body {
 }
 
 .aiResultBox {
-  background: #f5f0ff;
-  border: 1px solid #ede9fe;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 16px;
@@ -821,7 +872,7 @@ body {
   align-items: center;
   gap: 6px;
   font-weight: bold;
-  color: #7C4DFF !important;
+  color: var(--text-primary) !important;
   margin-bottom: 10px !important;
 }
 
@@ -836,8 +887,8 @@ body {
 }
 
 .aiCandidateCard {
-  background: #f5f0ff;
-  border: 1px solid #ede9fe;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 10px;
@@ -872,17 +923,17 @@ body {
 }
 
 .aiCandidateQueries {
-  color: #7C4DFF !important;
+  color: var(--text-secondary) !important;
   font-size: 12px !important;
-  background: #f5f0ff;
+  background: var(--surface);
   border-radius: 8px;
   padding: 6px 8px;
   margin-top: 4px;
 }
 
 .quickConfirmCard {
-  background: #f5f0ff;
-  border: 1px solid #ede9fe;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
@@ -890,7 +941,7 @@ body {
 
 .quickConfirmTitle {
   font-weight: bold;
-  color: #7C4DFF;
+  color: var(--text-primary);
   font-size: 16px;
   text-align: center;
   margin-bottom: 12px;
@@ -907,7 +958,7 @@ body {
 }
 
 .quickConfirmDivider {
-  border-top: 1px solid #ede9fe;
+  border-top: 1px solid var(--border-subtle);
   margin: 12px 0;
 }
 
@@ -915,6 +966,23 @@ body {
   color: #333;
   font-size: 15px;
   margin-bottom: 10px;
+}
+
+.formActionSpacer {
+  height: var(--space-4);
+}
+
+.formActionBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  margin-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+.formActionBar .saveButton,
+.formActionBar .quickConfirmEditButton {
+  margin-bottom: 0;
 }
 
 .stickyActionBarSpacer {
@@ -1064,8 +1132,8 @@ body {
   width: 100%;
   height: var(--button-height);
   border: none;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-muted);
+  color: var(--text-primary);
   border-radius: var(--radius-button);
   font-size: 15px;
   font-weight: 700;
@@ -1250,9 +1318,158 @@ body {
   text-decoration: none;
 }
 
+.bottomNav {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 390px;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: end;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -8px 24px rgba(20, 20, 30, 0.08);
+  padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+}
+
+.bottomNavItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 52px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bottomNavIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+}
+
+.bottomNavIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.bottomNavItem.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.bottomNavItem.primary {
+  min-height: 56px;
+  margin-top: -6px;
+  color: white;
+}
+
+.bottomNavItem.primary .bottomNavIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 8px 20px rgba(124, 77, 255, 0.28);
+}
+
+.bottomNavItem.primary .bottomNavIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.bottomNavItem.primary .bottomNavLabel {
+  color: var(--accent);
+}
+
+.bottomNavItem.primary.active {
+  background: transparent;
+}
+
+.bottomNavItem:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sectionTitle {
+  font-size: var(--text-title);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.categoryScreen {
+  padding-top: var(--space-2);
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.categoryRow {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-chip);
+  padding: 10px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.categoryRowIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.categoryRowIcon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.categoryRowLabel {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.categoryRowCount {
+  min-width: 34px;
+  padding: 4px 10px;
+  border-radius: var(--radius-badge);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  text-align: center;
+}
+
 .mapSection {
-  margin-top: 28px;
-  margin-bottom: 16px;
+  margin-top: var(--space-2);
+  margin-bottom: 0;
 }
 
 .mapLabel {
@@ -1271,7 +1488,7 @@ body {
 }
 
 .mapWrapper {
-  height: 260px;
+  height: clamp(460px, calc(100dvh - 250px), 660px);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -1525,18 +1742,30 @@ body {
 
   .phone {
     width: 100%;
-    padding: 16px;
+    padding: 16px 16px calc(128px + env(safe-area-inset-bottom, 0px));
     border-radius: 16px;
   }
 
   .card {
-    padding: 12px;
-    gap: 10px;
+    padding: 0;
+    gap: 0;
+    min-height: 0;
   }
 
-  .card img {
-    width: 88px;
-    height: 88px;
+  .card img,
+  .cardThumbnailPlaceholder {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    height: auto;
+  }
+
+  .cardTitle {
+    font-size: 19px;
+  }
+
+  .mapWrapper {
+    height: calc(100dvh - 240px);
+    min-height: 500px;
   }
 
   .categories button {
@@ -1554,6 +1783,18 @@ body {
     left: 0;
     transform: none;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottomNav {
+    width: 100%;
+    left: 0;
+    transform: none;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .bottomNavLabel {
+    font-size: 10px;
   }
 
   .spotDetailHeader {

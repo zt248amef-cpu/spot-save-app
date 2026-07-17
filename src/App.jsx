@@ -7,6 +7,7 @@ import AddSpot from "./pages/AddSpot";
 import EditSpot from "./pages/EditSpot";
 import SpotDetail from "./pages/SpotDetail";
 import ScreenViewTracker from "./components/ScreenViewTracker";
+import BottomNav from "./components/BottomNav";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
 import { trackAppOpen } from "./services/analyticsService";
@@ -230,6 +231,7 @@ function App() {
             />
           </Routes>
         </div>
+        <BottomNav user={user} />
         {devOverlay}
       </div>
     </BrowserRouter>

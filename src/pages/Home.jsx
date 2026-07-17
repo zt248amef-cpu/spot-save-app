@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import SpotCard from "../components/SpotCard";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   MapPin,
@@ -9,7 +9,6 @@ import {
   Copy,
   LogIn,
   Smartphone,
-  Plus,
   LogOut,
   Heart,
   Coffee,
@@ -44,7 +43,8 @@ const CATEGORY_ICONS = {
 };
 
 const QUERY_KEY = "spotsave_homeQuery";
-const CATEGORY_KEY = "spotsave_homeCategory";
+const ALL_FILTER = "all";
+const FAVORITES_FILTER = "favorites";
 
 function safeSessionGet(key) {
   try {
@@ -64,8 +64,11 @@ function safeSessionSet(key, value) {
 
 function Home({ spots, user, loading, authError }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get("view") || "list";
   const [query, setQuery] = useState(() => safeSessionGet(QUERY_KEY) ?? "");
-  const [selectedCategory, setSelectedCategory] = useState(() => safeSessionGet(CATEGORY_KEY) ?? "すべて");
+  const [listFilter, setListFilter] = useState(ALL_FILTER);
   const [showSaved, setShowSaved] = useState(location.state?.saved ?? false);
   const [highlightedId, setHighlightedId] = useState(location.state?.savedSpotId ?? null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -93,10 +96,6 @@ function Home({ spots, user, loading, authError }) {
     safeSessionSet(QUERY_KEY, query);
   }, [query]);
 
-  useEffect(() => {
-    safeSessionSet(CATEGORY_KEY, selectedCategory);
-  }, [selectedCategory]);
-
   // 外部サイトから復帰した直後、スポット一覧の読み込み完了後に一度だけ
   // 離脱前のスクロール位置へ戻す（検索・カテゴリ状態は上のuseStateで既に復元済み）
   useEffect(() => {
@@ -118,7 +117,12 @@ function Home({ spots, user, loading, authError }) {
     return () => clearTimeout(timer);
   }, [showSaved]);
 
-  const categories = ["すべて", "⭐ お気に入り", "☕ カフェ", "🍜 グルメ", "🧖 サウナ", "❤️ デート", "✈️ 旅行"];
+  const categories = ["☕ カフェ", "🍜 グルメ", "🧖 サウナ", "❤️ デート", "✈️ 旅行"];
+
+  const categoryCounts = categories.map((category) => ({
+    category,
+    count: spots.filter((spot) => spot.category === category).length,
+  }));
 
   const filteredSpots = [...spots]
     .sort((a, b) => {
@@ -134,12 +138,14 @@ function Home({ spots, user, loading, authError }) {
         (spot.placeName ?? "").toLowerCase().includes(q) ||
         (spot.area ?? "").toLowerCase().includes(q) ||
         (spot.addressCandidate ?? "").toLowerCase().includes(q);
-      const matchesCategory =
-        selectedCategory === "すべて" ||
-        (selectedCategory === "⭐ お気に入り" && spot.favorite) ||
-        spot.category === selectedCategory;
-      return matchesQuery && matchesCategory;
+      const matchesFilter =
+        listFilter === ALL_FILTER ||
+        (listFilter === FAVORITES_FILTER && spot.favorite) ||
+        spot.category === listFilter;
+      return matchesQuery && matchesFilter;
     });
+
+  const showListView = view === "list" || !["map", "categories"].includes(view);
 
   const handleDelete = async (id) => {
     try {
@@ -274,78 +280,104 @@ function Home({ spots, user, loading, authError }) {
       </div>
       {/* ------------------------------------------------- */}
 
-      <div className="searchWrapper">
-        <Search className="searchIcon" aria-hidden="true" />
-        <input
-          className="search"
-          type="text"
-          placeholder="検索..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-
-      <div className="categories">
-        {categories.map((cat) => {
-          const CategoryIcon = CATEGORY_ICONS[cat];
-          return (
-            <button
-              key={cat}
-              className={selectedCategory === cat ? "active" : ""}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {CategoryIcon && <CategoryIcon aria-hidden="true" />}
-              {stripLeadingEmoji(cat) || cat}
-            </button>
-          );
-        })}
-      </div>
-
-      {loading ? (
-        <div className="skeletonList">
-          {[0, 1, 2].map((i) => (
-            <div className="skeletonCard" key={i} />
-          ))}
-        </div>
-      ) : filteredSpots.length === 0 ? (
-        spots.length === 0 ? (
-          <div className="emptyState">
-            <p className="emptyStateIcon">
-              <MapPin aria-hidden="true" />
-            </p>
-            <p className="emptyStateTitle">まだ保存がありません</p>
-            <p className="emptyStateSubtitle">
-              気になる場所のURLを貼り付けて保存してみましょう
-            </p>
+      {showListView && (
+        <>
+          <div className="searchWrapper">
+            <Search className="searchIcon" aria-hidden="true" />
+            <input
+              className="search"
+              type="text"
+              placeholder="検索..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
-        ) : (
-          <p className="emptyMessage">条件に一致するスポットがありません</p>
-        )
-      ) : (
-        filteredSpots.map((spot) => (
-          <SpotCard
-            key={spot.id}
-            spot={spot}
-            onDelete={handleDelete}
-            onToggleFavorite={handleToggleFavorite}
-            highlighted={spot.id === highlightedId}
-            isSwipeOpen={spot.id === openSwipeId}
-            onSwipeOpen={() => setOpenSwipeId(spot.id)}
-            onSwipeClose={() => setOpenSwipeId((cur) => (cur === spot.id ? null : cur))}
-          />
-        ))
+
+          <div className="minimalFilters" aria-label="一覧フィルター">
+            <button
+              type="button"
+              className={listFilter === ALL_FILTER ? "active" : ""}
+              onClick={() => setListFilter(ALL_FILTER)}
+            >
+              <LayoutGrid aria-hidden="true" />
+              すべて
+            </button>
+            <button
+              type="button"
+              className={listFilter === FAVORITES_FILTER ? "active" : ""}
+              onClick={() => setListFilter(FAVORITES_FILTER)}
+            >
+              <Heart aria-hidden="true" />
+              お気に入り
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="skeletonList">
+              {[0, 1, 2].map((i) => (
+                <div className="skeletonCard" key={i} />
+              ))}
+            </div>
+          ) : filteredSpots.length === 0 ? (
+            spots.length === 0 ? (
+              <div className="emptyState">
+                <p className="emptyStateIcon">
+                  <MapPin aria-hidden="true" />
+                </p>
+                <p className="emptyStateTitle">まだ保存がありません</p>
+                <p className="emptyStateSubtitle">
+                  気になる場所のURLを貼り付けて保存してみましょう
+                </p>
+              </div>
+            ) : (
+              <p className="emptyMessage">条件に一致するスポットがありません</p>
+            )
+          ) : (
+            filteredSpots.map((spot) => (
+              <SpotCard
+                key={spot.id}
+                spot={spot}
+                onDelete={handleDelete}
+                onToggleFavorite={handleToggleFavorite}
+                highlighted={spot.id === highlightedId}
+                isSwipeOpen={spot.id === openSwipeId}
+                onSwipeOpen={() => setOpenSwipeId(spot.id)}
+                onSwipeClose={() => setOpenSwipeId((cur) => (cur === spot.id ? null : cur))}
+              />
+            ))
+          )}
+        </>
       )}
 
-      <MapView spots={spots} />
+      {view === "map" && <MapView spots={spots} />}
 
-      <div className="stickyActionBarSpacer" />
-
-      <div className="stickyActionBar">
-        <Link to="/add" className="saveButton linkButton">
-          <Plus aria-hidden="true" />
-          保存する
-        </Link>
-      </div>
+      {view === "categories" && (
+        <div className="categoryScreen">
+          <p className="sectionTitle">カテゴリ</p>
+          <div className="categoryList">
+            {categoryCounts.map(({ category, count }) => {
+              const CategoryIcon = CATEGORY_ICONS[category] ?? LayoutGrid;
+              return (
+                <button
+                  type="button"
+                  key={category}
+                  className="categoryRow"
+                  onClick={() => {
+                    setListFilter(category);
+                    navigate("/?view=list");
+                  }}
+                >
+                  <span className="categoryRowIcon">
+                    <CategoryIcon aria-hidden="true" />
+                  </span>
+                  <span className="categoryRowLabel">{stripLeadingEmoji(category) || category}</span>
+                  <span className="categoryRowCount">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </>
   );
 }
