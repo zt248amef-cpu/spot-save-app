@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import "./App.css";
 
 import Home from "./pages/Home";
@@ -21,6 +21,14 @@ import {
 } from "./utils/externalNavigation";
 
 const isDev = import.meta.env.DEV;
+
+function PhoneFrame({ children }) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isMapView = location.pathname === "/" && searchParams.get("view") === "map";
+
+  return <div className={`phone${isMapView ? " mapPhone" : ""}`}>{children}</div>;
+}
 
 // ---- UUID方式に戻す場合はここを解除し、認証ブロックをコメントアウト ----
 // function getOrCreateUserId() {
@@ -211,7 +219,7 @@ function App() {
     <BrowserRouter>
       <ScreenViewTracker />
       <div className="app">
-        <div className="phone">
+        <PhoneFrame>
           <Routes>
             <Route
               path="/"
@@ -230,7 +238,7 @@ function App() {
               element={<SpotDetail spots={spots} />}
             />
           </Routes>
-        </div>
+        </PhoneFrame>
         <BottomNav user={user} />
         {devOverlay}
       </div>

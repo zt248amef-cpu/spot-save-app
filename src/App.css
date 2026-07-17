@@ -47,6 +47,10 @@
   /* ボタン高さ */
   --button-height: 52px;
   --tap-target-min: 44px;
+  --bottom-nav-height: 72px;
+  --bottom-nav-safe-height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  --mobile-app-y-padding: 16px;
+  --mobile-phone-y-padding: 16px;
 }
 
 * {
@@ -71,8 +75,27 @@ body {
   min-height: 100vh;
   background: #f6f6f8;
   border-radius: 24px;
-  padding: 24px 24px calc(128px + env(safe-area-inset-bottom, 0px));
+  padding: 24px 24px calc(var(--bottom-nav-safe-height) + 40px);
   box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.phone.mapPhone {
+  height: calc(100dvh - 80px - var(--bottom-nav-safe-height));
+  min-height: 0;
+  padding-bottom: 24px;
+  overflow: hidden;
+}
+
+.homeScreen {
+  min-height: 0;
+}
+
+.homeScreenMap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .errorBoundaryScreen {
@@ -1329,11 +1352,12 @@ body {
   grid-template-columns: repeat(4, 1fr);
   align-items: end;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.96);
+  background: #ffffff;
   border-top: 1px solid var(--border-subtle);
   box-shadow: 0 -8px 24px rgba(20, 20, 30, 0.08);
+  min-height: var(--bottom-nav-safe-height);
   padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
-  z-index: 30;
+  z-index: 2000;
 }
 
 .bottomNavItem {
@@ -1468,6 +1492,14 @@ body {
 }
 
 .mapSection {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   margin-top: var(--space-2);
   margin-bottom: 0;
 }
@@ -1488,9 +1520,18 @@ body {
 }
 
 .mapWrapper {
-  height: clamp(460px, calc(100dvh - 250px), 660px);
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  contain: layout paint;
+  flex: 1;
+  min-height: 0;
+  height: auto;
   border-radius: 16px;
   overflow: hidden;
+  clip-path: inset(0 round 16px);
+  background: var(--surface-muted);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .mapHint {
@@ -1510,9 +1551,45 @@ body {
   margin-bottom: 0;
 }
 
-/* leaflet の z-index をphone内に収める */
-.leaflet-pane { z-index: 1 !important; }
-.leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+/* Leaflet layers must stay inside the map box and below the fixed bottom nav. */
+.mapWrapper .leaflet-container {
+  position: relative;
+  z-index: 0 !important;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.mapWrapper .leaflet-map-pane {
+  z-index: 0 !important;
+}
+
+.mapWrapper .leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.mapWrapper .leaflet-overlay-pane,
+.mapWrapper .leaflet-shadow-pane {
+  z-index: 2 !important;
+}
+
+.mapWrapper .leaflet-marker-pane {
+  z-index: 3 !important;
+}
+
+.mapWrapper .leaflet-tooltip-pane,
+.mapWrapper .leaflet-popup-pane {
+  z-index: 4 !important;
+}
+
+.mapWrapper .leaflet-control-container,
+.mapWrapper .leaflet-top,
+.mapWrapper .leaflet-bottom,
+.mapWrapper .leaflet-control {
+  z-index: 5 !important;
+}
 
 .savedToast {
   display: flex;
@@ -1737,13 +1814,18 @@ body {
 
 @media (max-width: 460px) {
   .app {
-    padding: 16px 8px;
+    padding: var(--mobile-app-y-padding) 8px;
   }
 
   .phone {
     width: 100%;
-    padding: 16px 16px calc(128px + env(safe-area-inset-bottom, 0px));
+    padding: var(--mobile-phone-y-padding) 16px calc(var(--bottom-nav-safe-height) + 40px);
     border-radius: 16px;
+  }
+
+  .phone.mapPhone {
+    height: calc(100dvh - (var(--mobile-app-y-padding) * 2) - var(--bottom-nav-safe-height));
+    padding: var(--mobile-phone-y-padding) 16px;
   }
 
   .card {
@@ -1761,11 +1843,6 @@ body {
 
   .cardTitle {
     font-size: 19px;
-  }
-
-  .mapWrapper {
-    height: calc(100dvh - 240px);
-    min-height: 500px;
   }
 
   .categories button {

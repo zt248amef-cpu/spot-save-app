@@ -253,7 +253,7 @@ function Home({ spots, user, loading, authError }) {
   // --------------------------------------------------
 
   return (
-    <>
+    <div className={`homeScreen${view === "map" ? " homeScreenMap" : ""}`}>
       {showSaved && (
         <div className="savedToast fadeIn">
           <CheckCircle2 aria-hidden="true" />
@@ -378,7 +378,7 @@ function Home({ spots, user, loading, authError }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

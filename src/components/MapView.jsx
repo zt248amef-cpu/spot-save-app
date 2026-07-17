@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Map as MapIcon, MapPin } from "lucide-react";
 import { trackScreenView } from "../services/analyticsService";
@@ -16,6 +16,25 @@ L.Icon.Default.mergeOptions({
 });
 
 const TOKYO = [35.6762, 139.6503];
+
+function ResizeMapOnLayout() {
+  const map = useMap();
+
+  useEffect(() => {
+    const invalidate = () => map.invalidateSize();
+    const frame = requestAnimationFrame(invalidate);
+    const timer = setTimeout(invalidate, 250);
+    window.addEventListener("resize", invalidate);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      window.removeEventListener("resize", invalidate);
+    };
+  }, [map]);
+
+  return null;
+}
 
 function MapView({ spots }) {
   const sectionRef = useRef(null);
@@ -47,6 +66,7 @@ function MapView({ spots }) {
       </p>
       <div className="mapWrapper">
         <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+          <ResizeMapOnLayout />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
