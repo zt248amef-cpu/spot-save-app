@@ -406,6 +406,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           <h3 className="cardTitle">{displayTitle}</h3>
           <button
             className={`favoriteButton${spot.favorite ? " active" : ""}${favoritePulse ? " pulse" : ""}`}
+            data-tour="favorite-button"
             onClick={handleFavorite}
             disabled={togglingFavorite}
             aria-label={spot.favorite ? "お気に入りから外す" : "お気に入りに追加"}

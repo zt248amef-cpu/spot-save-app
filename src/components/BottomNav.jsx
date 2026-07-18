@@ -32,6 +32,7 @@ function BottomNav({ user }) {
           <Link
             key={item.key}
             to={to}
+            data-tour={item.key === "save" ? "save-nav" : undefined}
             className={`bottomNavItem${active ? " active" : ""}${item.primary ? " primary" : ""}`}
             aria-current={active ? "page" : undefined}
           >

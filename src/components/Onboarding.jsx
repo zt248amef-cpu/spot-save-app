@@ -1,264 +1,258 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot, BookmarkCheck, Link, MapPin, Share2 } from "lucide-react";
-import {
-  completeOnboarding,
-  hasCompletedOnboarding,
-  resetOnboarding,
-  SHOW_ONBOARDING_EVENT,
-} from "../utils/onboarding";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { completeOnboarding, hasCompletedOnboarding, resetOnboarding, SHOW_ONBOARDING_EVENT } from "../utils/onboarding";
 
-const pages = [
+const steps = [
   {
-    title: "SNSで見つけた場所、忘れてない？",
-    description: "TikTok・Instagram・YouTube・Xで見つけた行きたい場所を、まとめて保存。",
-    illustration: "collect",
+    route: "/?view=list",
+    target: '[data-tour="save-nav"]',
+    title: "まずは保存してみよう",
+    description: "TikTok・Instagram・YouTube・Xで見つけたURLを保存できます。",
+    placement: "top",
+    arrow: "down",
   },
   {
+    route: "/add",
+    target: '[data-tour="url-input"]',
+    secondary: '[data-tour="save-submit"]',
     title: "URLを貼るだけ",
-    description: "リンクを貼るだけでSpotSaveが情報を整理して保存します。",
-    illustration: "save",
+    description: "リンクを貼るだけでSpotSaveが自動で情報を整理します。",
+    placement: "bottom",
+    arrow: "up",
   },
   {
-    title: "あとで簡単に見返せる",
-    description: "一覧や地図から、次の休日に行きたい場所をすぐ見つけられます。",
-    illustration: "map",
+    route: "/?view=list",
+    target: '[data-tour="spot-list"]',
+    secondary: '[data-tour="favorite-button"]',
+    title: "保存した場所はここ",
+    description: "あとからいつでも見返せます。",
+    placement: "bottom",
+    arrow: "up",
+  },
+  {
+    route: "/?view=map",
+    target: '[data-tour="map"]',
+    title: "地図でも探せる",
+    description: "行きたい場所を地図から探せます。",
+    placement: "top",
+    arrow: "down",
+    pin: true,
+  },
+  {
+    route: "/?view=list",
+    title: "次の休日をもっと楽しもう。",
+    description: "SpotSaveが、行きたい場所を忘れない毎日をサポートします。",
+    final: true,
   },
 ];
 
-const SWIPE_THRESHOLD = 48;
+const emptyRect = { top: 0, left: 0, width: 0, height: 0 };
 
-function OnboardingIllustration({ type }) {
-  if (type === "collect") {
-    return (
-      <div className="onboardingIllustration onboardingIllustrationCollect" aria-hidden="true">
-        <div className="onboardingMiniStack">
-          <span>TikTok</span>
-          <span>Instagram</span>
-          <span>YouTube</span>
-          <span>X</span>
-        </div>
-        <div className="onboardingIllustrationArrow">
-          <Share2 />
-        </div>
-        <div className="onboardingPhoneCard">
-          <strong>SpotSave</strong>
-          <small>Places</small>
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "save") {
-    return (
-      <div className="onboardingIllustration onboardingIllustrationFlow" aria-hidden="true">
-        <div className="onboardingFlowNode">
-          <Link />
-          <span>URL</span>
-        </div>
-        <div className="onboardingFlowLine" />
-        <div className="onboardingFlowNode active">
-          <Bot />
-          <span>AI</span>
-        </div>
-        <div className="onboardingFlowLine" />
-        <div className="onboardingFlowNode">
-          <BookmarkCheck />
-          <span>保存</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="onboardingIllustration onboardingIllustrationMap" aria-hidden="true">
-      <div className="onboardingMapGrid" />
-      <div className="onboardingMapPin main">
-        <MapPin />
-      </div>
-      <span className="onboardingMapPin dot one" />
-      <span className="onboardingMapPin dot two" />
-      <span className="onboardingRoute" />
-    </div>
-  );
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
-function Onboarding() {
-  const [visible, setVisible] = useState(() => !hasCompletedOnboarding());
-  const [pageIndex, setPageIndex] = useState(0);
-  const [dragOffset, setDragOffset] = useState(0);
+function getTargetRect(selector) {
+  const target = selector ? document.querySelector(selector) : null;
+  if (!target) return null;
+  const rect = target.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return null;
+  return rect;
+}
+
+function Onboarding({ user }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [visible, setVisible] = useState(() => !!user && !hasCompletedOnboarding());
+  const [stepIndex, setStepIndex] = useState(0);
+  const [targetRect, setTargetRect] = useState(emptyRect);
+  const [secondaryRect, setSecondaryRect] = useState(null);
   const [rememberChoice, setRememberChoice] = useState(true);
-  const dragRef = useRef({
-    active: false,
-    pointerId: null,
-    startX: 0,
-    startY: 0,
-    currentOffset: 0,
-    direction: null,
-  });
+
+  const step = steps[stepIndex];
+
+  useEffect(() => {
+    if (user && !hasCompletedOnboarding()) {
+      setVisible(true);
+    }
+  }, [user]);
 
   useEffect(() => {
     const show = () => {
-      setPageIndex(0);
-      setDragOffset(0);
+      setStepIndex(0);
       setRememberChoice(true);
-      setVisible(true);
+      setVisible(!!user);
     };
     window.addEventListener(SHOW_ONBOARDING_EVENT, show);
     return () => window.removeEventListener(SHOW_ONBOARDING_EVENT, show);
-  }, []);
+  }, [user]);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (!visible || !user) return;
+    if (`${location.pathname}${location.search}` !== step.route) {
+      navigate(step.route, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate, step.route, user, visible]);
 
-  const close = () => {
+  useLayoutEffect(() => {
+    if (!visible || !user || step.final) return;
+
+    let raf = 0;
+    let timer = 0;
+
+    const measure = () => {
+      const rect = getTargetRect(step.target);
+      if (rect) {
+        const padding = step.target === '[data-tour="map"]' ? 8 : 10;
+        setTargetRect({
+          top: rect.top - padding,
+          left: rect.left - padding,
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2,
+        });
+      }
+
+      const secondary = getTargetRect(step.secondary);
+      setSecondaryRect(
+        secondary
+          ? {
+              top: secondary.top - 7,
+              left: secondary.left - 7,
+              width: secondary.width + 14,
+              height: secondary.height + 14,
+            }
+          : null
+      );
+    };
+
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    };
+
+    schedule();
+    timer = window.setTimeout(measure, 320);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
+    };
+  }, [step, user, visible, location.pathname, location.search]);
+
+  const bubbleStyle = useMemo(() => {
+    if (step.final) return undefined;
+
+    const width = Math.min(326, window.innerWidth - 32);
+    const centeredLeft = targetRect.left + targetRect.width / 2 - width / 2;
+    const left = clamp(centeredLeft, 16, window.innerWidth - width - 16);
+    const prefersTop = step.placement === "top";
+    const top = prefersTop
+      ? Math.max(18, targetRect.top - 176)
+      : Math.min(window.innerHeight - 190, targetRect.top + targetRect.height + 18);
+
+    return { width, left, top };
+  }, [step, targetRect]);
+
+  if (!visible || !user) return null;
+
+  const skip = () => {
     completeOnboarding();
     setVisible(false);
-    setDragOffset(0);
   };
 
-  const start = () => {
+  const next = () => {
+    setStepIndex((current) => Math.min(steps.length - 1, current + 1));
+  };
+
+  const back = () => {
+    setStepIndex((current) => Math.max(0, current - 1));
+  };
+
+  const finish = () => {
     if (rememberChoice) {
       completeOnboarding();
     } else {
       resetOnboarding();
     }
     setVisible(false);
-    setDragOffset(0);
   };
-
-  const moveTo = (nextIndex) => {
-    setPageIndex(Math.min(pages.length - 1, Math.max(0, nextIndex)));
-    setDragOffset(0);
-  };
-
-  const handlePointerDown = (event) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    dragRef.current = {
-      active: true,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      currentOffset: 0,
-      direction: null,
-    };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
-
-  const handlePointerMove = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active || drag.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (drag.direction === null) {
-      if (absDx < 8 && absDy < 8) return;
-      drag.direction = absDx > absDy ? "horizontal" : "vertical";
-    }
-
-    if (drag.direction !== "horizontal") return;
-
-    event.preventDefault();
-    const atFirst = pageIndex === 0 && dx > 0;
-    const atLast = pageIndex === pages.length - 1 && dx < 0;
-    const nextOffset = atFirst || atLast ? dx * 0.28 : dx;
-    drag.currentOffset = nextOffset;
-    setDragOffset(nextOffset);
-  };
-
-  const handlePointerUp = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active || drag.pointerId !== event.pointerId) return;
-    drag.active = false;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-
-    if (drag.direction === "horizontal" && Math.abs(drag.currentOffset) >= SWIPE_THRESHOLD) {
-      moveTo(pageIndex + (drag.currentOffset < 0 ? 1 : -1));
-      return;
-    }
-    drag.currentOffset = 0;
-    setDragOffset(0);
-  };
-
-  const trackTransform = `translate3d(calc(${-pageIndex * 100}% + ${dragOffset}px), 0, 0)`;
 
   return (
-    <div className="onboardingOverlay" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-      <div className="onboardingPanel">
-        <div className="onboardingTop">
-          <span className="onboardingBrand">SpotSave</span>
-          <button type="button" className="onboardingSkip" onClick={close}>
-            スキップ
-          </button>
-        </div>
-
-        <div
-          className="onboardingViewport"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={() => {
-            dragRef.current.active = false;
-            setDragOffset(0);
-          }}
-        >
+    <div className="tourOverlay" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      {!step.final && (
+        <>
           <div
-            className="onboardingTrack"
+            className={`tourSpotlight${step.target === '[data-tour="map"]' ? " map" : ""}`}
             style={{
-              transform: trackTransform,
-              transition: dragRef.current.active ? "none" : undefined,
+              top: targetRect.top,
+              left: targetRect.left,
+              width: targetRect.width,
+              height: targetRect.height,
             }}
           >
-            {pages.map((page, index) => (
-              <section className="onboardingPage" key={page.title} aria-hidden={index !== pageIndex}>
-                <OnboardingIllustration type={page.illustration} />
-                <h2 id={index === pageIndex ? "onboardingTitle" : undefined}>{page.title}</h2>
-                <p>{page.description}</p>
-                {index === pages.length - 1 && (
-                  <p className="onboardingTagline">次の休日をもっと楽しもう。</p>
-                )}
-              </section>
-            ))}
+            {step.pin && <span className="tourPinPulse" />}
           </div>
-        </div>
 
-        {pageIndex === pages.length - 1 && (
-          <label className="onboardingRemember">
+          {secondaryRect && (
+            <div
+              className="tourSecondarySpotlight"
+              style={{
+                top: secondaryRect.top,
+                left: secondaryRect.left,
+                width: secondaryRect.width,
+                height: secondaryRect.height,
+              }}
+            />
+          )}
+
+          <div className={`tourBubble arrow-${step.arrow}`} style={bubbleStyle}>
+            <p className="tourStepCount">{stepIndex + 1} / {steps.length}</p>
+            <h2 id="tourTitle">{step.title}</h2>
+            <p>{step.description}</p>
+            <div className="tourActions">
+              <button type="button" className="tourBackButton" onClick={back} disabled={stepIndex === 0}>
+                戻る
+              </button>
+              <button type="button" className="tourNextButton" onClick={next}>
+                次へ
+              </button>
+            </div>
+          </div>
+
+          <button type="button" className="tourSkipButton" onClick={skip}>
+            スキップ
+          </button>
+        </>
+      )}
+
+      {step.final && (
+        <div className="tourFinalCard">
+          <p className="tourStepCount">5 / 5</p>
+          <h2 id="tourTitle">{step.title}</h2>
+          <p>{step.description}</p>
+          <label className="tourRemember">
             <input
               type="checkbox"
               checked={rememberChoice}
               onChange={(event) => setRememberChoice(event.target.checked)}
             />
-            <span className="onboardingRememberBox" aria-hidden="true" />
+            <span className="tourRememberBox" aria-hidden="true" />
             <span>今後は表示しない</span>
           </label>
-        )}
-
-        <div className="onboardingFooter">
-          <div className="onboardingDots" aria-label={`${pageIndex + 1} / ${pages.length}`}>
-            {pages.map((page, index) => (
-              <button
-                type="button"
-                key={page.title}
-                className={index === pageIndex ? "active" : ""}
-                onClick={() => moveTo(index)}
-                aria-label={`${index + 1}ページ目`}
-              />
-            ))}
-          </div>
-
-          {pageIndex === pages.length - 1 ? (
-            <button type="button" className="onboardingPrimary" onClick={start}>
+          <div className="tourActions final">
+            <button type="button" className="tourBackButton" onClick={back}>
+              戻る
+            </button>
+            <button type="button" className="tourStartButton" onClick={finish}>
               はじめる
             </button>
-          ) : (
-            <button type="button" className="onboardingPrimary" onClick={() => moveTo(pageIndex + 1)}>
-              次へ
-            </button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

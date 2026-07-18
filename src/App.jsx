@@ -213,7 +213,6 @@ function App() {
           <p style={{ color: "#aaa" }}>{redirectChecking ? "ログイン確認中..." : "読み込み中..."}</p>
         </div>
         <PwaUpdatePrompt />
-        <Onboarding />
         {devOverlay}
       </div>
     );
@@ -245,7 +244,7 @@ function App() {
         </PhoneFrame>
         <BottomNav user={user} />
         <PwaUpdatePrompt />
-        <Onboarding />
+        <Onboarding user={user} />
         {devOverlay}
       </div>
     </BrowserRouter>

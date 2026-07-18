@@ -313,14 +313,14 @@ function Home({ spots, user, loading, authError }) {
           </div>
 
           {loading ? (
-            <div className="skeletonList">
+            <div className="skeletonList" data-tour="spot-list">
               {[0, 1, 2].map((i) => (
                 <div className="skeletonCard" key={i} />
               ))}
             </div>
           ) : filteredSpots.length === 0 ? (
             spots.length === 0 ? (
-              <div className="emptyState">
+              <div className="emptyState" data-tour="spot-list">
                 <p className="emptyStateIcon">
                   <MapPin aria-hidden="true" />
                 </p>
@@ -333,18 +333,20 @@ function Home({ spots, user, loading, authError }) {
               <p className="emptyMessage">条件に一致するスポットがありません</p>
             )
           ) : (
-            filteredSpots.map((spot) => (
-              <SpotCard
-                key={spot.id}
-                spot={spot}
-                onDelete={handleDelete}
-                onToggleFavorite={handleToggleFavorite}
-                highlighted={spot.id === highlightedId}
-                isSwipeOpen={spot.id === openSwipeId}
-                onSwipeOpen={() => setOpenSwipeId(spot.id)}
-                onSwipeClose={() => setOpenSwipeId((cur) => (cur === spot.id ? null : cur))}
-              />
-            ))
+            <div data-tour="spot-list">
+              {filteredSpots.map((spot) => (
+                <SpotCard
+                  key={spot.id}
+                  spot={spot}
+                  onDelete={handleDelete}
+                  onToggleFavorite={handleToggleFavorite}
+                  highlighted={spot.id === highlightedId}
+                  isSwipeOpen={spot.id === openSwipeId}
+                  onSwipeOpen={() => setOpenSwipeId(spot.id)}
+                  onSwipeClose={() => setOpenSwipeId((cur) => (cur === spot.id ? null : cur))}
+                />
+              ))}
+            </div>
           )}
         </>
       )}

@@ -303,6 +303,7 @@ function AddSpot({ user }) {
       <div className="urlWrapper">
         <textarea
           className="urlBox"
+          data-tour="url-input"
           placeholder="https://www.tiktok.com/..."
           value={url}
           onChange={handleUrlChange}
@@ -547,7 +548,7 @@ function AddSpot({ user }) {
       <div className="formActionSpacer" />
 
       <div className="formActionBar">
-        <button className="saveButton" onClick={handleSave} disabled={!canSave}>
+        <button className="saveButton" data-tour="save-submit" onClick={handleSave} disabled={!canSave}>
           {saving ? "保存中..." : "保存"}
         </button>
       </div>

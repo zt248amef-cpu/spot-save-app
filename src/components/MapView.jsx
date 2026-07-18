@@ -64,7 +64,7 @@ function MapView({ spots }) {
         <MapIcon aria-hidden="true" />
         地図
       </p>
-      <div className="mapWrapper">
+      <div className="mapWrapper" data-tour="map">
         <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
           <ResizeMapOnLayout />
           <TileLayer
