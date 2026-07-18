@@ -3,6 +3,7 @@ import { ClipboardPaste, MapPinned, Sparkles } from "lucide-react";
 import {
   completeOnboarding,
   hasCompletedOnboarding,
+  resetOnboarding,
   SHOW_ONBOARDING_EVENT,
 } from "../utils/onboarding";
 
@@ -30,6 +31,7 @@ function Onboarding() {
   const [visible, setVisible] = useState(() => !hasCompletedOnboarding());
   const [pageIndex, setPageIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
+  const [rememberChoice, setRememberChoice] = useState(true);
   const dragRef = useRef({
     active: false,
     pointerId: null,
@@ -43,6 +45,7 @@ function Onboarding() {
     const show = () => {
       setPageIndex(0);
       setDragOffset(0);
+      setRememberChoice(true);
       setVisible(true);
     };
     window.addEventListener(SHOW_ONBOARDING_EVENT, show);
@@ -53,6 +56,16 @@ function Onboarding() {
 
   const close = () => {
     completeOnboarding();
+    setVisible(false);
+    setDragOffset(0);
+  };
+
+  const start = () => {
+    if (rememberChoice) {
+      completeOnboarding();
+    } else {
+      resetOnboarding();
+    }
     setVisible(false);
     setDragOffset(0);
   };
@@ -159,6 +172,18 @@ function Onboarding() {
           </div>
         </div>
 
+        {pageIndex === pages.length - 1 && (
+          <label className="onboardingRemember">
+            <input
+              type="checkbox"
+              checked={rememberChoice}
+              onChange={(event) => setRememberChoice(event.target.checked)}
+            />
+            <span className="onboardingRememberBox" aria-hidden="true" />
+            <span>今後は表示しない</span>
+          </label>
+        )}
+
         <div className="onboardingFooter">
           <div className="onboardingDots" aria-label={`${pageIndex + 1} / ${pages.length}`}>
             {pages.map((page, index) => (
@@ -173,7 +198,7 @@ function Onboarding() {
           </div>
 
           {pageIndex === pages.length - 1 ? (
-            <button type="button" className="onboardingPrimary" onClick={close}>
+            <button type="button" className="onboardingPrimary" onClick={start}>
               はじめる
             </button>
           ) : (
