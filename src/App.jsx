@@ -8,6 +8,7 @@ import EditSpot from "./pages/EditSpot";
 import SpotDetail from "./pages/SpotDetail";
 import ScreenViewTracker from "./components/ScreenViewTracker";
 import BottomNav from "./components/BottomNav";
+import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
 import { trackAppOpen } from "./services/analyticsService";
@@ -210,6 +211,7 @@ function App() {
         <div className="phone" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           <p style={{ color: "#aaa" }}>{redirectChecking ? "ログイン確認中..." : "読み込み中..."}</p>
         </div>
+        <PwaUpdatePrompt />
         {devOverlay}
       </div>
     );
@@ -240,6 +242,7 @@ function App() {
           </Routes>
         </PhoneFrame>
         <BottomNav user={user} />
+        <PwaUpdatePrompt />
         {devOverlay}
       </div>
     </BrowserRouter>
