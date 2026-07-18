@@ -3,7 +3,7 @@ import { RefreshCw, X } from "lucide-react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
-const UPDATE_PROMPT_BUILD_MARKER = "pwa-update-check-20260718";
+const UPDATE_PROMPT_BUILD_MARKER = "pwa-update-check-20260718b";
 
 function PwaUpdatePrompt() {
   const [updating, setUpdating] = useState(false);
