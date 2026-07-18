@@ -3,6 +3,7 @@ import { RefreshCw, X } from "lucide-react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const UPDATE_PROMPT_BUILD_MARKER = "pwa-update-check-20260718";
 
 function PwaUpdatePrompt() {
   const [updating, setUpdating] = useState(false);
@@ -44,7 +45,12 @@ function PwaUpdatePrompt() {
   };
 
   return (
-    <div className="pwaUpdatePrompt" role="status" aria-live="polite">
+    <div
+      className="pwaUpdatePrompt"
+      role="status"
+      aria-live="polite"
+      data-update-build={UPDATE_PROMPT_BUILD_MARKER}
+    >
       <div className="pwaUpdateText">
         <RefreshCw aria-hidden="true" />
         <span>新しいバージョンがあります</span>
