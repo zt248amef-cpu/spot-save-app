@@ -35,6 +35,7 @@ function Onboarding() {
     pointerId: null,
     startX: 0,
     startY: 0,
+    currentOffset: 0,
     direction: null,
   });
 
@@ -68,6 +69,7 @@ function Onboarding() {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      currentOffset: 0,
       direction: null,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -92,7 +94,9 @@ function Onboarding() {
     event.preventDefault();
     const atFirst = pageIndex === 0 && dx > 0;
     const atLast = pageIndex === pages.length - 1 && dx < 0;
-    setDragOffset(atFirst || atLast ? dx * 0.28 : dx);
+    const nextOffset = atFirst || atLast ? dx * 0.28 : dx;
+    drag.currentOffset = nextOffset;
+    setDragOffset(nextOffset);
   };
 
   const handlePointerUp = (event) => {
@@ -101,10 +105,11 @@ function Onboarding() {
     drag.active = false;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
 
-    if (drag.direction === "horizontal" && Math.abs(dragOffset) >= SWIPE_THRESHOLD) {
-      moveTo(pageIndex + (dragOffset < 0 ? 1 : -1));
+    if (drag.direction === "horizontal" && Math.abs(drag.currentOffset) >= SWIPE_THRESHOLD) {
+      moveTo(pageIndex + (drag.currentOffset < 0 ? 1 : -1));
       return;
     }
+    drag.currentOffset = 0;
     setDragOffset(0);
   };
 
