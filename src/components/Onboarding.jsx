@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ClipboardPaste, MapPinned, Sparkles } from "lucide-react";
+import { Bot, BookmarkCheck, Link, MapPin, Share2 } from "lucide-react";
 import {
   completeOnboarding,
   hasCompletedOnboarding,
@@ -11,21 +11,76 @@ const pages = [
   {
     title: "SNSで見つけた場所、忘れてない？",
     description: "TikTok・Instagram・YouTube・Xで見つけた行きたい場所を、まとめて保存。",
-    icon: Sparkles,
+    illustration: "collect",
   },
   {
     title: "URLを貼るだけ",
     description: "リンクを貼るだけでSpotSaveが情報を整理して保存します。",
-    icon: ClipboardPaste,
+    illustration: "save",
   },
   {
     title: "あとで簡単に見返せる",
     description: "一覧や地図から、次の休日に行きたい場所をすぐ見つけられます。",
-    icon: MapPinned,
+    illustration: "map",
   },
 ];
 
 const SWIPE_THRESHOLD = 48;
+
+function OnboardingIllustration({ type }) {
+  if (type === "collect") {
+    return (
+      <div className="onboardingIllustration onboardingIllustrationCollect" aria-hidden="true">
+        <div className="onboardingMiniStack">
+          <span>TikTok</span>
+          <span>Instagram</span>
+          <span>YouTube</span>
+          <span>X</span>
+        </div>
+        <div className="onboardingIllustrationArrow">
+          <Share2 />
+        </div>
+        <div className="onboardingPhoneCard">
+          <strong>SpotSave</strong>
+          <small>Places</small>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "save") {
+    return (
+      <div className="onboardingIllustration onboardingIllustrationFlow" aria-hidden="true">
+        <div className="onboardingFlowNode">
+          <Link />
+          <span>URL</span>
+        </div>
+        <div className="onboardingFlowLine" />
+        <div className="onboardingFlowNode active">
+          <Bot />
+          <span>AI</span>
+        </div>
+        <div className="onboardingFlowLine" />
+        <div className="onboardingFlowNode">
+          <BookmarkCheck />
+          <span>保存</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="onboardingIllustration onboardingIllustrationMap" aria-hidden="true">
+      <div className="onboardingMapGrid" />
+      <div className="onboardingMapPin main">
+        <MapPin />
+      </div>
+      <span className="onboardingMapPin dot one" />
+      <span className="onboardingMapPin dot two" />
+      <span className="onboardingRoute" />
+    </div>
+  );
+}
 
 function Onboarding() {
   const [visible, setVisible] = useState(() => !hasCompletedOnboarding());
@@ -126,8 +181,6 @@ function Onboarding() {
     setDragOffset(0);
   };
 
-  const currentPage = pages[pageIndex];
-  const CurrentIcon = currentPage.icon;
   const trackTransform = `translate3d(calc(${-pageIndex * 100}% + ${dragOffset}px), 0, 0)`;
 
   return (
@@ -157,18 +210,16 @@ function Onboarding() {
               transition: dragRef.current.active ? "none" : undefined,
             }}
           >
-            {pages.map((page, index) => {
-              const Icon = page.icon;
-              return (
-                <section className="onboardingPage" key={page.title} aria-hidden={index !== pageIndex}>
-                  <div className="onboardingIcon">
-                    <Icon aria-hidden="true" />
-                  </div>
-                  <h2 id={index === pageIndex ? "onboardingTitle" : undefined}>{page.title}</h2>
-                  <p>{page.description}</p>
-                </section>
-              );
-            })}
+            {pages.map((page, index) => (
+              <section className="onboardingPage" key={page.title} aria-hidden={index !== pageIndex}>
+                <OnboardingIllustration type={page.illustration} />
+                <h2 id={index === pageIndex ? "onboardingTitle" : undefined}>{page.title}</h2>
+                <p>{page.description}</p>
+                {index === pages.length - 1 && (
+                  <p className="onboardingTagline">次の休日をもっと楽しもう。</p>
+                )}
+              </section>
+            ))}
           </div>
         </div>
 
@@ -206,10 +257,6 @@ function Onboarding() {
               次へ
             </button>
           )}
-        </div>
-
-        <div className="onboardingCurrentIcon" aria-hidden="true">
-          <CurrentIcon />
         </div>
       </div>
     </div>
