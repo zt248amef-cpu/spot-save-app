@@ -10,6 +10,7 @@ const steps = [
     description: "TikTok・Instagram・YouTube・Xで見つけたURLを保存できます。",
     placement: "top",
     arrow: "down",
+    scene: "meadow",
   },
   {
     route: "/add",
@@ -19,6 +20,8 @@ const steps = [
     description: "リンクを貼るだけでSpotSaveが自動で情報を整理します。",
     placement: "bottom",
     arrow: "up",
+    scene: "clouds",
+    guide: "flow",
   },
   {
     route: "/?view=list",
@@ -28,6 +31,7 @@ const steps = [
     description: "あとからいつでも見返せます。",
     placement: "bottom",
     arrow: "up",
+    scene: "meadow",
   },
   {
     route: "/?view=map",
@@ -36,12 +40,14 @@ const steps = [
     description: "行きたい場所を地図から探せます。",
     placement: "top",
     arrow: "down",
+    scene: "travel",
     pin: true,
   },
   {
     route: "/?view=list",
-    title: "次の休日をもっと楽しもう。",
-    description: "SpotSaveが、行きたい場所を忘れない毎日をサポートします。",
+    title: "次の休日が待ちきれなくなる。",
+    description: "行きたい場所を集めて、\nあなただけのお気に入りマップをつくろう。",
+    scene: "final",
     final: true,
   },
 ];
@@ -58,6 +64,36 @@ function getTargetRect(selector) {
   const rect = target.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return null;
   return rect;
+}
+
+function TourScene({ scene, final = false }) {
+  return (
+    <div className={`tourScene ${scene}${final ? " final" : ""}`} aria-hidden="true">
+      <span className="tourSun" />
+      <span className="tourCloud cloudOne" />
+      <span className="tourCloud cloudTwo" />
+      <span className="tourHill hillBack" />
+      <span className="tourHill hillFront" />
+      <span className="tourPath" />
+      <span className="tourSpark sparkOne" />
+      <span className="tourSpark sparkTwo" />
+      {scene === "travel" && (
+        <>
+          <span className="tourSea" />
+          <span className="tourMountain mountainOne" />
+          <span className="tourMountain mountainTwo" />
+        </>
+      )}
+      {final && (
+        <div className="tourDreamCards">
+          <span className="tourPhotoCard cardOne" />
+          <span className="tourPhotoCard cardTwo" />
+          <span className="tourPhotoCard cardThree" />
+          <span className="tourDreamPin" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Onboarding({ user }) {
@@ -146,13 +182,13 @@ function Onboarding({ user }) {
   const bubbleStyle = useMemo(() => {
     if (step.final) return undefined;
 
-    const width = Math.min(326, window.innerWidth - 32);
+    const width = Math.min(334, window.innerWidth - 32);
     const centeredLeft = targetRect.left + targetRect.width / 2 - width / 2;
     const left = clamp(centeredLeft, 16, window.innerWidth - width - 16);
     const prefersTop = step.placement === "top";
     const top = prefersTop
-      ? Math.max(18, targetRect.top - 176)
-      : Math.min(window.innerHeight - 190, targetRect.top + targetRect.height + 18);
+      ? Math.max(18, targetRect.top - 184)
+      : Math.min(window.innerHeight - 208, targetRect.top + targetRect.height + 18);
 
     return { width, left, top };
   }, [step, targetRect]);
@@ -182,7 +218,9 @@ function Onboarding({ user }) {
   };
 
   return (
-    <div className="tourOverlay" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <div className={`tourOverlay scene-${step.scene}`} role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      <TourScene scene={step.scene} final={step.final} />
+
       {!step.final && (
         <>
           <div
@@ -213,6 +251,7 @@ function Onboarding({ user }) {
             <p className="tourStepCount">{stepIndex + 1} / {steps.length}</p>
             <h2 id="tourTitle">{step.title}</h2>
             <p>{step.description}</p>
+            {step.guide === "flow" && <span className="tourHintArrow" aria-hidden="true" />}
             <div className="tourActions">
               <button type="button" className="tourBackButton" onClick={back} disabled={stepIndex === 0}>
                 戻る
