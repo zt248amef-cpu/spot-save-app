@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import travelCollage from "../assets/onboarding-travel-collage.jpg";
 import { completeOnboarding, hasCompletedOnboarding, resetOnboarding, SHOW_ONBOARDING_EVENT } from "../utils/onboarding";
 
 const steps = [
@@ -7,7 +8,7 @@ const steps = [
     route: "/?view=list",
     target: '[data-tour="save-nav"]',
     title: "まずは保存してみよう",
-    description: "TikTok・Instagram・YouTube・Xで見つけたURLを保存できます。",
+    description: "TikTok・Instagram・YouTube・Xで見つけた\nURLを保存できます。",
     placement: "top",
     arrow: "down",
     scene: "meadow",
@@ -45,7 +46,7 @@ const steps = [
   },
   {
     route: "/?view=list",
-    title: "次の休日が待ちきれなくなる。",
+    title: "次の休日が\n待ちきれなくなる。",
     description: "行きたい場所を集めて、\nあなただけのお気に入りマップをつくろう。",
     scene: "final",
     final: true,
@@ -83,14 +84,6 @@ function TourScene({ scene, final = false }) {
           <span className="tourMountain mountainOne" />
           <span className="tourMountain mountainTwo" />
         </>
-      )}
-      {final && (
-        <div className="tourDreamCards">
-          <span className="tourPhotoCard cardOne" />
-          <span className="tourPhotoCard cardTwo" />
-          <span className="tourPhotoCard cardThree" />
-          <span className="tourDreamPin" />
-        </div>
       )}
     </div>
   );
@@ -183,12 +176,19 @@ function Onboarding({ user }) {
     if (step.final) return undefined;
 
     const width = Math.min(334, window.innerWidth - 32);
+    const bubbleHeight = step.guide === "flow" ? 206 : 176;
+    const safeTop = 16;
+    const safeBottom = 28 + (window.visualViewport ? window.innerHeight - window.visualViewport.height : 0);
+    const viewportBottom = window.innerHeight - safeBottom;
     const centeredLeft = targetRect.left + targetRect.width / 2 - width / 2;
     const left = clamp(centeredLeft, 16, window.innerWidth - width - 16);
-    const prefersTop = step.placement === "top";
-    const top = prefersTop
-      ? Math.max(18, targetRect.top - 184)
-      : Math.min(window.innerHeight - 208, targetRect.top + targetRect.height + 18);
+    const topSpace = targetRect.top - safeTop;
+    const bottomSpace = viewportBottom - (targetRect.top + targetRect.height);
+    const shouldPlaceTop = step.placement === "top" || (topSpace > bottomSpace && topSpace > bubbleHeight + 18);
+    const preferredTop = shouldPlaceTop
+      ? targetRect.top - bubbleHeight - 18
+      : targetRect.top + targetRect.height + 18;
+    const top = clamp(preferredTop, safeTop, viewportBottom - bubbleHeight);
 
     return { width, left, top };
   }, [step, targetRect]);
@@ -270,6 +270,9 @@ function Onboarding({ user }) {
 
       {step.final && (
         <div className="tourFinalCard">
+          <div className="tourFinalVisual" aria-hidden="true">
+            <img src={travelCollage} alt="" />
+          </div>
           <p className="tourStepCount">5 / 5</p>
           <h2 id="tourTitle">{step.title}</h2>
           <p>{step.description}</p>
