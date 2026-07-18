@@ -292,6 +292,10 @@ body {
 .cardSwipeWrapper {
   position: relative;
   margin-bottom: 16px;
+  contain: layout paint;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   /* overflow:hidden は使わない。⋮メニューはこのラッパーの子である.card配下に
      bottom基準で配置されており、上方向にラッパーの外まではみ出すため、
      overflow:hiddenで切り取ると「▶ 元動画を見る」等がクリックできなくなる。
@@ -307,6 +311,7 @@ body {
   display: flex;
   border-radius: 16px;
   overflow: hidden;
+  z-index: 0;
 }
 
 .swipeActionButton {
@@ -351,9 +356,17 @@ body {
   box-shadow: 0 2px 10px rgba(20, 20, 30, 0.04);
   padding: 0;
   position: relative;
+  z-index: 1;
   cursor: pointer;
   min-height: 0;
   overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .card img,
@@ -364,6 +377,9 @@ body {
   object-fit: cover;
   border-radius: 0;
   flex-shrink: 0;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .cardThumbnailPlaceholder {
@@ -681,12 +697,12 @@ body {
 }
 
 .cardEnter {
-  animation: cardEnter 0.5s ease;
+  animation: cardEnter 0.25s ease;
 }
 
 @keyframes cardEnter {
-  0% { opacity: 0; transform: translateY(-12px) scale(0.98); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes fadeInScale {

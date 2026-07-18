@@ -25,13 +25,36 @@ import {
   markPwaVideoGuideSeen,
 } from "../utils/externalNavigation";
 
-// スワイプで開く量・判定しきい値
-const SWIPE_OPEN_OFFSET = -140; // 開いた状態で左へ動かす量(編集+削除ボタン分)
-const SWIPE_MAX_OFFSET = -160; // 指を離さず引っ張っても、これ以上は動かさない(画面外へ飛ばさない)
-const SWIPE_COMMIT_THRESHOLD = 30; // これ未満の移動量では元の位置へ戻す
-const SWIPE_DIRECTION_LOCK = 8; // このpx数を超えるまでは縦/横どちらのジェスチャーか判定を保留する
+// Keep drag tracking simple: pointer position maps directly to card position.
+const SWIPE_OPEN_OFFSET = -140;
+const SWIPE_MAX_OFFSET = -150;
+const SWIPE_OPEN_THRESHOLD = 70;
+const SWIPE_DIRECTION_LOCK = 10;
+const SWIPE_VELOCITY_OPEN = -0.5;
+const SWIPE_SETTLE_DURATION = 240;
+const SWIPE_SETTLE_EASING = "cubic-bezier(0.25, 0.8, 0.25, 1)";
+const SWIPE_DEBUG_FLAG = "__SPOTSAVE_SWIPE_DEBUG__";
 
-// 続きを読むボタンを出すかどうかの簡易しきい値（2行に収まらなそうな文字数）
+function debugSwipe(...args) {
+  if (import.meta.env.DEV && typeof window !== "undefined" && window[SWIPE_DEBUG_FLAG]) {
+    console.debug("[SpotCard swipe]", ...args);
+  }
+}
+
+function describeEventTarget(target) {
+  if (!target) return "unknown";
+  const tag = target.tagName?.toLowerCase?.() || target.nodeName || "node";
+  const className =
+    typeof target.className === "string"
+      ? target.className
+      : target.className?.baseVal || "";
+  return className ? `${tag}.${className.trim().replace(/\s+/g, ".")}` : tag;
+}
+
+function clampSwipeOffset(offset) {
+  return Math.min(0, Math.max(SWIPE_MAX_OFFSET, offset));
+}
+
 const MEMO_TRUNCATE_THRESHOLD = 50;
 
 function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, onSwipeOpen, onSwipeClose }) {
@@ -44,19 +67,65 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
   const [favoritePulse, setFavoritePulse] = useState(false);
   const [videoGuideToast, setVideoGuideToast] = useState(false);
   const [showPwaFirstTimeGuide, setShowPwaFirstTimeGuide] = useState(false);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef({ active: false, direction: null, startX: 0, startY: 0, baseOffset: 0, currentOffset: 0, pointerId: null });
+  const [swipeOpen, setSwipeOpen] = useState(false);
+  const cardRef = useRef(null);
+  const swipeOffsetRef = useRef(0);
+  const rafRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    direction: null,
+    startX: 0,
+    startY: 0,
+    baseOffset: 0,
+    currentOffset: 0,
+    pointerId: null,
+    target: null,
+    startTime: 0,
+    moveUpdateCount: 0,
+    settleStarted: false,
+  });
   const suppressClickRef = useRef(false);
   const sns = detectSns(spot.url);
   const savedAt = formatSavedAt(spot.createdAt);
 
-  // 別カードが開かれた・外側がタップされた等、親から「閉じて」と言われたら追従する
+  const applySwipeOffset = (offset) => {
+    swipeOffsetRef.current = offset;
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      cardRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+      rafRef.current = null;
+    });
+  };
+
+  const settleSwipeOffset = (offset, duration = 260) => {
+    swipeOffsetRef.current = offset;
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transition = `transform ${duration}ms ${SWIPE_SETTLE_EASING}`;
+    el.style.transform = `translate3d(${offset}px, 0, 0)`;
+  };
+
+  const setDraggingStyle = (dragging) => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transition = dragging ? "none" : "";
+  };
+
+  // 別カードが開かれた・外側がタップされた等、親から「閉じて」と言われたら追従する。
   useEffect(() => {
-    if (!isSwipeOpen && swipeOffset !== 0) {
-      setSwipeOffset(0);
+    if (!isSwipeOpen && swipeOffsetRef.current !== 0) {
+      settleSwipeOffset(0, 240);
+      setSwipeOpen(false);
     }
-  }, [isSwipeOpen, swipeOffset]);
+  }, [isSwipeOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   // タイトルは「店名(AI/手動で確定した名前) > 元の必須入力名」の優先度で表示する
   const displayTitle = spot.placeName?.trim() || spot.title;
@@ -77,8 +146,9 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
       setMenuOpen(false);
       return;
     }
-    if (swipeOffset !== 0) {
-      setSwipeOffset(0);
+    if (swipeOffsetRef.current !== 0) {
+      settleSwipeOffset(0, 220);
+      setSwipeOpen(false);
       onSwipeClose?.();
       return;
     }
@@ -91,18 +161,47 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     // スワイプ判定の対象外にする(このカードのタップ操作を邪魔しない)
     if (isInteractiveTarget(e.target)) {
       dragRef.current.active = false;
+      debugSwipe("pointerdown:interactive", {
+        pointerId: e.pointerId,
+        target: describeEventTarget(e.target),
+        currentTarget: describeEventTarget(e.currentTarget),
+        startX: e.clientX,
+        startY: e.clientY,
+      });
       return;
     }
+    const bounds = e.currentTarget.getBoundingClientRect();
     dragRef.current = {
       active: true,
       direction: null,
       startX: e.clientX,
       startY: e.clientY,
-      baseOffset: swipeOffset,
-      currentOffset: swipeOffset,
+      baseOffset: swipeOffsetRef.current,
+      currentOffset: swipeOffsetRef.current,
       pointerId: e.pointerId,
       target: e.currentTarget,
+      startTime: performance.now(),
+      moveUpdateCount: 0,
+      settleStarted: false,
     };
+    setDraggingStyle(true);
+    debugSwipe("pointerdown", {
+      pointerId: e.pointerId,
+      target: describeEventTarget(e.target),
+      currentTarget: describeEventTarget(e.currentTarget),
+      startX: e.clientX,
+      startY: e.clientY,
+      relativeX: e.clientX - bounds.left,
+      relativeY: e.clientY - bounds.top,
+      baseOffset: swipeOffsetRef.current,
+      hasCaptureBefore: e.currentTarget.hasPointerCapture?.(e.pointerId) || false,
+    });
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    debugSwipe("capture:set", {
+      pointerId: e.pointerId,
+      currentTarget: describeEventTarget(e.currentTarget),
+      hasCaptureAfter: e.currentTarget.hasPointerCapture?.(e.pointerId) || false,
+    });
   };
 
   const handleSwipePointerMove = (e) => {
@@ -110,35 +209,63 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
     if (drag.direction === null) {
-      if (Math.abs(dx) < SWIPE_DIRECTION_LOCK && Math.abs(dy) < SWIPE_DIRECTION_LOCK) return;
-      // 横移動が縦移動より十分大きい場合のみスワイプとして扱う。そうでなければ
-      // 縦スクロールとみなし、以後このジェスチャーでは何もしない(邪魔しない)。
-      drag.direction = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+      if (absDx < SWIPE_DIRECTION_LOCK && absDy < SWIPE_DIRECTION_LOCK) return;
+      if (absDy > SWIPE_DIRECTION_LOCK && absDy > absDx) {
+        drag.direction = "vertical";
+        debugSwipe("direction:vertical", {
+          pointerId: e.pointerId,
+          dx,
+          dy,
+          target: describeEventTarget(e.target),
+          currentTarget: describeEventTarget(e.currentTarget),
+        });
+        return;
+      }
+      if (absDx < SWIPE_DIRECTION_LOCK || absDx < absDy * 1.15) return;
+      drag.direction = "horizontal";
       if (drag.direction === "horizontal") {
-        setMenuOpen(false);
-        setIsDragging(true);
-        // スワイプと確定した時点で初めてキャプチャする。単なるタップ(お気に入り・
-        // ⋮メニュー等のボタン)まで先取りしてキャプチャすると、それらのclickが
-        // このカード自身に奪われてしまうため、ここまで遅らせる。
-        drag.target?.setPointerCapture?.(e.pointerId);
+        if (menuOpen) setMenuOpen(false);
+        debugSwipe("direction:horizontal", {
+          pointerId: e.pointerId,
+          dx,
+          dy,
+          target: describeEventTarget(e.target),
+          currentTarget: describeEventTarget(e.currentTarget),
+          hasCapture: drag.target?.hasPointerCapture?.(e.pointerId) || false,
+        });
       }
     }
 
     if (drag.direction !== "horizontal") return;
 
     e.preventDefault();
-    const next = Math.min(0, Math.max(SWIPE_MAX_OFFSET, drag.baseOffset + dx));
+    const next = clampSwipeOffset(drag.baseOffset + dx);
     drag.currentOffset = next;
-    setSwipeOffset(next);
+    drag.moveUpdateCount += 1;
+    debugSwipe("pointermove", {
+      pointerId: e.pointerId,
+      dx,
+      baseOffset: drag.baseOffset,
+      translateX: next,
+      moveUpdateCount: drag.moveUpdateCount,
+      target: describeEventTarget(e.target),
+      currentTarget: describeEventTarget(e.currentTarget),
+      hasCapture: drag.target?.hasPointerCapture?.(e.pointerId) || false,
+    });
+    applySwipeOffset(next);
   };
 
   const handleSwipePointerUp = (e) => {
     const drag = dragRef.current;
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     drag.active = false;
-    setIsDragging(false);
+    if (drag.settleStarted) return;
+    drag.settleStarted = true;
+    setDraggingStyle(false);
     // ブラウザによってはpointerup後もキャプチャが暗黙に解放されないことがあり、
     // 次回以降のジェスチャーでpointermoveを取りこぼす原因になるため明示的に解放する
     try {
@@ -150,9 +277,21 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     if (drag.direction !== "horizontal") return;
 
     const delta = drag.currentOffset - drag.baseOffset;
-    const wasClosed = drag.baseOffset === 0;
-    const shouldOpen = wasClosed ? delta <= -SWIPE_COMMIT_THRESHOLD : delta < SWIPE_COMMIT_THRESHOLD;
+    const elapsed = Math.max(1, performance.now() - drag.startTime);
+    const velocityX = delta / elapsed;
+    const shouldOpen =
+      velocityX <= SWIPE_VELOCITY_OPEN || Math.abs(drag.currentOffset) >= SWIPE_OPEN_THRESHOLD;
     const finalOffset = shouldOpen ? SWIPE_OPEN_OFFSET : 0;
+    debugSwipe("pointerup", {
+      pointerId: e.pointerId,
+      currentOffset: drag.currentOffset,
+      baseOffset: drag.baseOffset,
+      velocityX,
+      finalOffset,
+      moveUpdateCount: drag.moveUpdateCount,
+      target: describeEventTarget(e.target),
+      currentTarget: describeEventTarget(e.currentTarget),
+    });
 
     if (Math.abs(delta) > 5) {
       suppressClickRef.current = true;
@@ -162,7 +301,8 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
         suppressClickRef.current = false;
       }, 400);
     }
-    setSwipeOffset(finalOffset);
+    settleSwipeOffset(finalOffset, SWIPE_SETTLE_DURATION);
+    setSwipeOpen(finalOffset !== 0);
     if (finalOffset === SWIPE_OPEN_OFFSET) {
       onSwipeOpen?.();
     } else {
@@ -170,8 +310,33 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     }
   };
 
+  const handleSwipePointerCancel = (e) => {
+    const drag = dragRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
+    drag.active = false;
+    if (drag.settleStarted) return;
+    drag.settleStarted = true;
+    setDraggingStyle(false);
+    try {
+      drag.target?.releasePointerCapture?.(e.pointerId);
+    } catch {
+      // noop
+    }
+    debugSwipe("pointercancel", {
+      pointerId: e.pointerId,
+      currentOffset: drag.currentOffset,
+      baseOffset: drag.baseOffset,
+      moveUpdateCount: drag.moveUpdateCount,
+      target: describeEventTarget(e.target),
+      currentTarget: describeEventTarget(e.currentTarget),
+    });
+    settleSwipeOffset(drag.baseOffset, 180);
+    setSwipeOpen(drag.baseOffset !== 0);
+  };
+
   const closeSwipe = () => {
-    setSwipeOffset(0);
+    settleSwipeOffset(0, 220);
+    setSwipeOpen(false);
     onSwipeClose?.();
   };
 
@@ -275,17 +440,22 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
     setMemoExpanded((v) => !v);
   };
 
-  const swipeIsOpen = swipeOffset !== 0;
-
   return (
-    <div className="cardSwipeWrapper" data-spot-id={spot.id}>
-      <div className="cardSwipeActions" aria-hidden={!swipeIsOpen}>
+    <div
+      className="cardSwipeWrapper"
+      data-spot-id={spot.id}
+      onPointerDown={handleSwipePointerDown}
+      onPointerMove={handleSwipePointerMove}
+      onPointerUp={handleSwipePointerUp}
+      onPointerCancel={handleSwipePointerCancel}
+    >
+      <div className="cardSwipeActions" aria-hidden={!swipeOpen}>
         {spot.url?.trim() && (
           <button
             type="button"
             className="swipeActionButton swipeActionVideo"
             aria-label="元動画を見る"
-            tabIndex={swipeIsOpen ? 0 : -1}
+            tabIndex={swipeOpen ? 0 : -1}
             onClick={handleOpenOriginal}
           >
             <Play aria-hidden="true" strokeWidth={2} fill="currentColor" />
@@ -296,7 +466,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
           type="button"
           className="swipeActionButton swipeActionDelete"
           aria-label="削除"
-          tabIndex={swipeIsOpen ? 0 : -1}
+          tabIndex={swipeOpen ? 0 : -1}
           disabled={deleting}
           onClick={handleDelete}
         >
@@ -306,20 +476,12 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
       </div>
 
       <div
+        ref={cardRef}
         className={`card${highlighted ? " cardEnter" : ""}`}
         onClick={handleCardClick}
-        onPointerDown={handleSwipePointerDown}
-        onPointerMove={handleSwipePointerMove}
-        onPointerUp={handleSwipePointerUp}
-        onPointerCancel={handleSwipePointerUp}
-        style={{
-          transform: `translateX(${swipeOffset}px)`,
-          transition: isDragging ? "none" : "transform 0.25s ease",
-          touchAction: "pan-y",
-        }}
       >
       {displayImage ? (
-        <img src={displayImage} alt={displayTitle} />
+        <img src={displayImage} alt={displayTitle} draggable="false" />
       ) : (
         <div className="cardThumbnailPlaceholder" aria-hidden="true">
           <ImageOff size={28} strokeWidth={1.5} />
@@ -433,3 +595,4 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
 }
 
 export default SpotCard;
+
