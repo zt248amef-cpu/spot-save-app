@@ -1334,6 +1334,10 @@ body {
   color: #666;
 }
 
+.tourPreviewHidden {
+  display: none !important;
+}
+
 .logoutButton {
   display: inline-flex;
   align-items: center;
@@ -1931,10 +1935,7 @@ body {
 }
 
 .tourOverlay.scene-final {
-  background:
-    radial-gradient(circle at 16% 8%, rgba(255, 242, 166, 0.78), transparent 25%),
-    radial-gradient(circle at 88% 20%, rgba(255, 255, 255, 0.82), transparent 24%),
-    linear-gradient(180deg, #cceeff 0%, #f8fcff 62%, #ecf7e9 100%);
+  background: rgba(246, 248, 251, 0.94);
 }
 
 .tourScene {
@@ -1946,13 +1947,48 @@ body {
 }
 
 .tourScene:not(.final) {
-  z-index: 4100;
-  opacity: 0.55;
+  display: none;
 }
 
 .tourScene.final {
   z-index: 4102;
   opacity: 1;
+}
+
+.tourScene.final .tourSun {
+  right: auto;
+  left: -28px;
+  top: calc(-22px + env(safe-area-inset-top, 0px));
+  width: 172px;
+  height: 172px;
+  background: radial-gradient(circle, rgba(255, 246, 178, 0.98), rgba(255, 231, 122, 0.34) 42%, transparent 72%);
+}
+
+.tourScene.final .tourCloud.cloudOne {
+  left: -26px;
+  top: calc(126px + env(safe-area-inset-top, 0px));
+  width: 122px;
+  height: 34px;
+  opacity: 0.72;
+}
+
+.tourScene.final .tourCloud.cloudTwo {
+  right: -10px;
+  top: calc(150px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  width: 112px;
+  height: 32px;
+  opacity: 0.66;
+}
+
+.tourScene.final .tourHill.hillBack {
+  bottom: -74px;
+  background: linear-gradient(180deg, rgba(173, 222, 166, 0.46), rgba(128, 201, 137, 0.26));
+}
+
+.tourScene.final .tourHill.hillFront {
+  bottom: -118px;
+  background: linear-gradient(180deg, rgba(190, 229, 145, 0.56), rgba(117, 197, 127, 0.32));
 }
 
 .tourSun {
@@ -2079,21 +2115,292 @@ body {
 .tourFinalVisual {
   position: relative;
   z-index: 1;
-  width: min(316px, 100%);
-  margin: 6px auto 18px;
-  aspect-ratio: 1 / 0.86;
-  border-radius: 28px;
+  width: 100%;
+  height: min(404px, calc(100dvh - 318px - env(safe-area-inset-bottom, 0px)));
+  min-height: 360px;
+  margin: 2px auto 10px;
   overflow: hidden;
-  background: #dff3ff;
-  box-shadow: 0 18px 42px rgba(62, 137, 190, 0.2);
+  border-radius: 0 0 22px 22px;
+  background:
+    linear-gradient(180deg, rgba(224, 241, 247, 0) 0%, rgba(250, 252, 252, 0.5) 54%, rgba(226, 235, 224, 0.72) 100%);
+  box-shadow: none;
+}
+
+.tourFinalPhoto {
+  position: absolute;
+  display: block;
+  padding: 5px;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(34, 53, 73, 0.16);
+  transform-origin: center;
   animation: tourCardDrift 5.6s ease-in-out infinite;
 }
 
-.tourFinalVisual img {
+.tourFinalPhoto img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
+  border-radius: 11px;
+}
+
+.tourFinalPhoto.photoCafe {
+  left: 1px;
+  top: 62px;
+  width: 135px;
+  height: 158px;
+  z-index: 3;
+  transform: rotate(-3deg);
+}
+
+.tourFinalPhoto.photoSunset {
+  left: 99px;
+  top: 38px;
+  width: 147px;
+  height: 162px;
+  z-index: 5;
+  transform: rotate(2deg);
+  animation-delay: 0.25s;
+}
+
+.tourFinalPhoto.photoMountain {
+  right: 0;
+  top: 68px;
+  width: 136px;
+  height: 142px;
+  z-index: 4;
+  transform: rotate(3deg);
+  animation-delay: 0.4s;
+}
+
+.tourFinalPhoto.photoNight {
+  left: 43px;
+  top: 218px;
+  width: 154px;
+  height: 144px;
+  z-index: 4;
+  transform: rotate(-2.5deg);
+  animation-delay: 0.15s;
+}
+
+.tourFinalPhoto.photoShrine {
+  right: 25px;
+  top: 220px;
+  width: 154px;
+  height: 138px;
+  z-index: 3;
+  transform: rotate(2.5deg);
+  animation-delay: 0.35s;
+}
+
+.tourFinalPin {
+  position: absolute;
+  left: 14px;
+  top: -11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50% 50% 50% 0;
+  background: #7565a8;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 7px rgba(55, 46, 91, 0.18);
+}
+
+.tourFinalPin::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.photoSunset .tourFinalPin {
+  left: 14px;
+  top: -12px;
+}
+
+.photoMountain .tourFinalPin,
+.photoShrine .tourFinalPin {
+  left: auto;
+  right: 16px;
+  top: -11px;
+}
+
+.photoNight .tourFinalPin {
+  left: 18px;
+  top: -11px;
+}
+
+.photoMountain .tourFinalPin,
+.photoNight .tourFinalPin {
+  display: none;
+}
+
+.tourFinalSun,
+.tourFinalCloud,
+.tourFinalBird,
+.tourFinalDoodle,
+.tourFinalMeadow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tourFinalSun {
+  z-index: 0;
+  left: -60px;
+  top: -188px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.86) 0 18%, rgba(244, 236, 202, 0.18) 38%, transparent 70%);
+  opacity: 0.56;
+}
+
+.tourFinalCloud {
+  z-index: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.48);
+  filter: none;
+}
+
+.tourFinalCloud::before,
+.tourFinalCloud::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tourFinalCloud.cloudLeft {
+  left: -30px;
+  top: 22px;
+  width: 94px;
+  height: 24px;
+}
+
+.tourFinalCloud.cloudLeft::before {
+  left: 26px;
+  top: -15px;
+  width: 38px;
+  height: 38px;
+}
+
+.tourFinalCloud.cloudLeft::after {
+  left: 52px;
+  top: -6px;
+  width: 44px;
+  height: 30px;
+}
+
+.tourFinalCloud.cloudRight {
+  right: -12px;
+  top: 12px;
+  width: 78px;
+  height: 22px;
+  opacity: 0.78;
+}
+
+.tourFinalCloud.cloudRight::before {
+  left: 18px;
+  top: -15px;
+  width: 36px;
+  height: 36px;
+}
+
+.tourFinalCloud.cloudRight::after {
+  right: -18px;
+  top: 0;
+  width: 46px;
+  height: 22px;
+}
+
+.tourFinalBird {
+  display: none;
+}
+
+.tourFinalBird::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: -2px;
+  width: 14px;
+  height: 7px;
+  border-top: 2px solid rgba(183, 139, 55, 0.56);
+  border-radius: 50%;
+}
+
+.tourFinalBird.birdOne {
+  right: 52px;
+  top: 6px;
+  transform: rotate(12deg);
+}
+
+.tourFinalBird.birdTwo {
+  right: 28px;
+  top: 21px;
+  transform: scale(0.72) rotate(8deg);
+}
+
+.tourFinalDoodle {
+  display: none;
+}
+
+.tourFinalDoodle.heartOne::before,
+.tourFinalDoodle.heartTwo::before {
+  content: "♡";
+}
+
+.tourFinalDoodle.heartOne {
+  left: 4px;
+  top: 34px;
+  transform: rotate(-14deg);
+}
+
+.tourFinalDoodle.heartTwo {
+  right: 8px;
+  bottom: 84px;
+  transform: rotate(15deg);
+}
+
+.tourFinalDoodle.sparkleOne::before,
+.tourFinalDoodle.sparkleTwo::before {
+  content: "✧";
+}
+
+.tourFinalDoodle.sparkleOne {
+  left: 112px;
+  top: 46px;
+  font-size: 18px;
+}
+
+.tourFinalDoodle.sparkleTwo {
+  right: 68px;
+  top: 58px;
+  font-size: 20px;
+}
+
+.tourFinalDoodle.plane::before {
+  content: "✈";
+}
+
+.tourFinalDoodle.plane {
+  right: 14px;
+  top: 38px;
+  font-size: 23px;
+  transform: rotate(18deg);
+}
+
+.tourFinalMeadow {
+  z-index: 1;
+  left: -10px;
+  right: -10px;
+  bottom: -4px;
+  height: 62px;
+  background: linear-gradient(180deg, rgba(224, 234, 222, 0), rgba(205, 220, 202, 0.48));
+  opacity: 0.62;
 }
 
 .tourSpotlight {
@@ -2143,15 +2450,11 @@ body {
 .tourFinalCard {
   position: fixed;
   z-index: 4103;
-  border: 1px solid rgba(216, 231, 244, 0.96);
-  background:
-    radial-gradient(circle at 86% 12%, rgba(255, 240, 168, 0.34), transparent 28%),
-    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  border: 1px solid rgba(226, 232, 240, 0.96);
+  background: #ffffff;
   color: #172033;
   border-radius: 24px;
-  box-shadow: 0 18px 44px rgba(10, 30, 52, 0.24), 0 2px 10px rgba(255, 255, 255, 0.72) inset;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 18px 44px rgba(10, 30, 52, 0.2);
   animation: tourCardEnter 0.25s ease both;
 }
 
@@ -2183,8 +2486,8 @@ body {
   left: 50%;
   width: 16px;
   height: 16px;
-  background: #f8fcff;
-  border: 1px solid rgba(216, 231, 244, 0.96);
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.96);
   transform: translateX(-50%) rotate(45deg);
 }
 
@@ -2233,6 +2536,36 @@ body {
   line-height: 1.72;
   margin-bottom: 16px;
   white-space: pre-line;
+}
+
+.tourFinalCard h2 {
+  font-size: 28px;
+  line-height: 1.28;
+  margin-bottom: 10px;
+}
+
+.tourFinalTitle span {
+  display: block;
+}
+
+.tourFinalTitleAccent {
+  color: #67588f;
+}
+
+.tourFinalCard p {
+  max-width: 292px;
+  font-size: 14px;
+  line-height: 1.72;
+  margin-bottom: 10px;
+}
+
+.tourFinalAccessibleText {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
 }
 
 .tourHintArrow {
@@ -2332,27 +2665,22 @@ body {
 .tourFinalCard {
   left: 50%;
   top: 50%;
-  width: min(364px, calc(100% - 24px));
-  max-height: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  width: min(430px, calc(100vw - 24px));
+  max-width: 430px;
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   transform: translate(-50%, -50%);
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 10px calc(12px + env(safe-area-inset-bottom, 0px));
   text-align: center;
   overflow: hidden;
   overflow-y: auto;
   animation: tourFinalEnter 0.25s ease both;
+  background: linear-gradient(180deg, #e5f2f6 0%, #fbfcfc 56%, #edf3eb 100%);
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 30px rgba(43, 62, 77, 0.12);
 }
 
 .tourFinalCard::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 58%;
-  background:
-    radial-gradient(circle at 16% 8%, rgba(255, 246, 178, 0.75), transparent 28%),
-    radial-gradient(circle at 86% 24%, rgba(255, 255, 255, 0.78), transparent 24%),
-    linear-gradient(180deg, #d9f2ff 0%, #f8fcff 72%, transparent 100%);
-  border-radius: inherit;
-  pointer-events: none;
+  display: none;
 }
 
 .tourFinalCard::after {
@@ -2364,15 +2692,30 @@ body {
   z-index: 1;
 }
 
+.tourFinalCard .tourBackButton {
+  border: 1px solid rgba(35, 49, 66, 0.12);
+  background: #ffffff;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.06);
+}
+
+.tourFinalCard .tourStartButton {
+  background: #7256d8;
+  box-shadow: 0 5px 12px rgba(72, 52, 132, 0.22);
+}
+
+.tourFinalCard h2 {
+  color: #142033;
+}
+
 .tourRemember {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
-  min-height: 40px;
-  color: #263447;
-  font-size: 14px;
-  font-weight: 800;
+  min-height: 36px;
+  color: #344154;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -2388,18 +2731,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1.5px solid rgba(87, 113, 134, 0.24);
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(71, 85, 105, 0.28);
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 6px 14px rgba(65, 136, 176, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(30, 41, 59, 0.08);
 }
 
 .tourRememberBox::after {
   content: "";
-  width: 10px;
-  height: 6px;
+  width: 8px;
+  height: 5px;
   border-left: 2px solid white;
   border-bottom: 2px solid white;
   transform: translateY(-1px) rotate(-45deg) scale(0);
@@ -2407,9 +2750,9 @@ body {
 }
 
 .tourRemember input:checked + .tourRememberBox {
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: 0 8px 18px rgba(124, 77, 255, 0.2);
+  border-color: #62508f;
+  background: #62508f;
+  box-shadow: none;
 }
 
 .tourRemember input:checked + .tourRememberBox::after {
@@ -2487,8 +2830,13 @@ body {
   }
 
   .tourBubble h2,
-  .tourFinalCard h2 {
+  .tourBubble h2 {
     font-size: 19px;
+  }
+
+  .tourFinalCard h2 {
+    font-size: 26px;
+    line-height: 1.3;
   }
 
   .tourCloud.cloudTwo {
@@ -2496,13 +2844,16 @@ body {
   }
 
   .tourFinalCard {
-    width: min(360px, calc(100% - 20px));
+    width: min(430px, calc(100vw - 24px));
+    max-width: 430px;
   }
 
   .tourFinalVisual {
-    margin-top: 4px;
-    margin-bottom: 16px;
-    aspect-ratio: 1 / 0.78;
+    width: 100%;
+    height: min(404px, calc(100dvh - 318px - env(safe-area-inset-bottom, 0px)));
+    min-height: 360px;
+    margin-top: 2px;
+    margin-bottom: 10px;
   }
 }
 

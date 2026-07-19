@@ -28,7 +28,7 @@ import { isValidUrl, normalizeUrl, resolveExtractionStatus, stripLeadingEmoji } 
 
 const aiExtractionAvailable = isAiExtractionAvailable();
 
-function AddSpot({ user }) {
+function AddSpot({ user, tourPreview = false }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
@@ -148,6 +148,10 @@ function AddSpot({ user }) {
 
   const handleSave = async () => {
     if (!user || saving) return;
+    if (tourPreview) {
+      navigate("/?view=list&tourPreview=1", { replace: true });
+      return;
+    }
     if (!url.trim()) {
       setErrorMessage("URLを入力してください");
       return;

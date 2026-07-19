@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import travelCollage from "../assets/onboarding-travel-collage.jpg";
+import finalCafe from "../assets/onboarding-final-cafe.jpg";
+import finalMountain from "../assets/onboarding-final-mountain.jpg";
+import finalNight from "../assets/onboarding-final-night.jpg";
+import finalShrine from "../assets/onboarding-final-shrine.jpg";
+import finalSunset from "../assets/onboarding-final-sunset.jpg";
 import { completeOnboarding, hasCompletedOnboarding, resetOnboarding, SHOW_ONBOARDING_EVENT } from "../utils/onboarding";
 
 const steps = [
@@ -11,7 +15,6 @@ const steps = [
     description: "TikTok・Instagram・YouTube・Xで見つけた\nURLを保存できます。",
     placement: "top",
     arrow: "down",
-    scene: "meadow",
   },
   {
     route: "/add",
@@ -21,8 +24,6 @@ const steps = [
     description: "リンクを貼るだけでSpotSaveが自動で情報を整理します。",
     placement: "bottom",
     arrow: "up",
-    scene: "clouds",
-    guide: "flow",
   },
   {
     route: "/?view=list",
@@ -32,7 +33,6 @@ const steps = [
     description: "あとからいつでも見返せます。",
     placement: "bottom",
     arrow: "up",
-    scene: "meadow",
   },
   {
     route: "/?view=map",
@@ -41,7 +41,6 @@ const steps = [
     description: "行きたい場所を地図から探せます。",
     placement: "top",
     arrow: "down",
-    scene: "travel",
     pin: true,
   },
   {
@@ -67,32 +66,16 @@ function getTargetRect(selector) {
   return rect;
 }
 
-function TourScene({ scene, final = false }) {
-  return (
-    <div className={`tourScene ${scene}${final ? " final" : ""}`} aria-hidden="true">
-      <span className="tourSun" />
-      <span className="tourCloud cloudOne" />
-      <span className="tourCloud cloudTwo" />
-      <span className="tourHill hillBack" />
-      <span className="tourHill hillFront" />
-      <span className="tourPath" />
-      <span className="tourSpark sparkOne" />
-      <span className="tourSpark sparkTwo" />
-      {scene === "travel" && (
-        <>
-          <span className="tourSea" />
-          <span className="tourMountain mountainOne" />
-          <span className="tourMountain mountainTwo" />
-        </>
-      )}
-    </div>
-  );
+function getStepRoute(step, previewMode) {
+  if (!previewMode) return step.route;
+  const separator = step.route.includes("?") ? "&" : "?";
+  return `${step.route}${separator}tourPreview=1`;
 }
 
-function Onboarding({ user }) {
+function Onboarding({ user, previewMode = false }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [visible, setVisible] = useState(() => !!user && !hasCompletedOnboarding());
+  const [visible, setVisible] = useState(() => (previewMode ? true : !!user && !hasCompletedOnboarding()));
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(emptyRect);
   const [secondaryRect, setSecondaryRect] = useState(null);
@@ -101,27 +84,32 @@ function Onboarding({ user }) {
   const step = steps[stepIndex];
 
   useEffect(() => {
+    if (previewMode) {
+      setVisible(true);
+      return;
+    }
     if (user && !hasCompletedOnboarding()) {
       setVisible(true);
     }
-  }, [user]);
+  }, [previewMode, user]);
 
   useEffect(() => {
     const show = () => {
       setStepIndex(0);
       setRememberChoice(true);
-      setVisible(!!user);
+      setVisible(previewMode ? true : !!user);
     };
     window.addEventListener(SHOW_ONBOARDING_EVENT, show);
     return () => window.removeEventListener(SHOW_ONBOARDING_EVENT, show);
-  }, [user]);
+  }, [previewMode, user]);
 
   useEffect(() => {
     if (!visible || !user) return;
-    if (`${location.pathname}${location.search}` !== step.route) {
-      navigate(step.route, { replace: true });
+    const route = getStepRoute(step, previewMode);
+    if (`${location.pathname}${location.search}` !== route) {
+      navigate(route, { replace: true });
     }
-  }, [location.pathname, location.search, navigate, step.route, user, visible]);
+  }, [location.pathname, location.search, navigate, previewMode, step, user, visible]);
 
   useLayoutEffect(() => {
     if (!visible || !user || step.final) return;
@@ -196,7 +184,9 @@ function Onboarding({ user }) {
   if (!visible || !user) return null;
 
   const skip = () => {
-    completeOnboarding();
+    if (!previewMode) {
+      completeOnboarding();
+    }
     setVisible(false);
   };
 
@@ -209,18 +199,18 @@ function Onboarding({ user }) {
   };
 
   const finish = () => {
-    if (rememberChoice) {
-      completeOnboarding();
-    } else {
-      resetOnboarding();
+    if (!previewMode) {
+      if (rememberChoice) {
+        completeOnboarding();
+      } else {
+        resetOnboarding();
+      }
     }
     setVisible(false);
   };
 
   return (
-    <div className={`tourOverlay scene-${step.scene}`} role="dialog" aria-modal="true" aria-labelledby="tourTitle">
-      <TourScene scene={step.scene} final={step.final} />
-
+    <div className={`tourOverlay${step.final ? " scene-final" : ""}`} role="dialog" aria-modal="true" aria-labelledby="tourTitle">
       {!step.final && (
         <>
           <div
@@ -251,7 +241,6 @@ function Onboarding({ user }) {
             <p className="tourStepCount">{stepIndex + 1} / {steps.length}</p>
             <h2 id="tourTitle">{step.title}</h2>
             <p>{step.description}</p>
-            {step.guide === "flow" && <span className="tourHintArrow" aria-hidden="true" />}
             <div className="tourActions">
               <button type="button" className="tourBackButton" onClick={back} disabled={stepIndex === 0}>
                 戻る
@@ -270,12 +259,49 @@ function Onboarding({ user }) {
 
       {step.final && (
         <div className="tourFinalCard">
-          <div className="tourFinalVisual" aria-hidden="true">
-            <img src={travelCollage} alt="" />
-          </div>
           <p className="tourStepCount">5 / 5</p>
-          <h2 id="tourTitle">{step.title}</h2>
-          <p>{step.description}</p>
+          <h2 id="tourTitle" className="tourFinalTitle">
+            <span>次の休日が</span>
+            <span className="tourFinalTitleAccent">待ちきれなくなる。</span>
+          </h2>
+          <p className="tourFinalDescription">
+            行きたい場所を集めて、
+            <br />
+            あなただけのお気に入りマップをつくろう。
+          </p>
+          <div className="tourFinalVisual" aria-label="休日に訪れたい場所の写真コラージュ">
+            <span className="tourFinalSun" aria-hidden="true" />
+            <span className="tourFinalCloud cloudLeft" aria-hidden="true" />
+            <span className="tourFinalCloud cloudRight" aria-hidden="true" />
+            <span className="tourFinalBird birdOne" aria-hidden="true" />
+            <span className="tourFinalBird birdTwo" aria-hidden="true" />
+            <span className="tourFinalDoodle heartOne" aria-hidden="true" />
+            <span className="tourFinalDoodle heartTwo" aria-hidden="true" />
+            <span className="tourFinalDoodle sparkleOne" aria-hidden="true" />
+            <span className="tourFinalDoodle sparkleTwo" aria-hidden="true" />
+            <span className="tourFinalDoodle plane" aria-hidden="true" />
+            <span className="tourFinalPhoto photoCafe">
+              <img src={finalCafe} alt="" />
+              <span className="tourFinalPin" />
+            </span>
+            <span className="tourFinalPhoto photoSunset">
+              <img src={finalSunset} alt="" />
+              <span className="tourFinalPin" />
+            </span>
+            <span className="tourFinalPhoto photoMountain">
+              <img src={finalMountain} alt="" />
+              <span className="tourFinalPin" />
+            </span>
+            <span className="tourFinalPhoto photoNight">
+              <img src={finalNight} alt="" />
+              <span className="tourFinalPin" />
+            </span>
+            <span className="tourFinalPhoto photoShrine">
+              <img src={finalShrine} alt="" />
+              <span className="tourFinalPin" />
+            </span>
+            <span className="tourFinalMeadow" aria-hidden="true" />
+          </div>
           <label className="tourRemember">
             <input
               type="checkbox"

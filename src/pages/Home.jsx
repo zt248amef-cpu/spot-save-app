@@ -62,7 +62,7 @@ function safeSessionSet(key, value) {
   }
 }
 
-function Home({ spots, user, loading, authError }) {
+function Home({ spots, user, loading, authError, tourPreview = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -148,6 +148,7 @@ function Home({ spots, user, loading, authError }) {
   const showListView = view === "list" || !["map", "categories"].includes(view);
 
   const handleDelete = async (id) => {
+    if (tourPreview) return;
     try {
       await deleteSpot(id);
     } catch (e) {
@@ -157,6 +158,7 @@ function Home({ spots, user, loading, authError }) {
   };
 
   const handleToggleFavorite = async (id) => {
+    if (tourPreview) return;
     const spot = spots.find((s) => s.id === id);
     if (!spot) return;
     try {
@@ -271,9 +273,9 @@ function Home({ spots, user, loading, authError }) {
       <h1 className="title">SpotSave</h1>
 
       {/* ---- UUID方式に戻す場合はここをコメントアウト ---- */}
-      <div className="userBar">
+      <div className={`userBar${tourPreview ? " tourPreviewHidden" : ""}`}>
         <span className="userName">{user.displayName}</span>
-        <button className="logoutButton" onClick={signOutUser}>
+        <button className="logoutButton" onClick={tourPreview ? undefined : signOutUser} disabled={tourPreview}>
           <LogOut aria-hidden="true" />
           ログアウト
         </button>

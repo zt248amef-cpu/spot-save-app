@@ -10,6 +10,7 @@ import ScreenViewTracker from "./components/ScreenViewTracker";
 import BottomNav from "./components/BottomNav";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 import Onboarding from "./components/Onboarding";
+import travelCollage from "./assets/onboarding-travel-collage.jpg";
 import { subscribeToSpots } from "./services/spotService";
 import { subscribeToAuthState, completeRedirectSignIn } from "./services/authService";
 import { trackAppOpen } from "./services/analyticsService";
@@ -23,6 +24,30 @@ import {
 } from "./utils/externalNavigation";
 
 const isDev = import.meta.env.DEV;
+
+const demoUser = {
+  uid: "tour-preview-user",
+  displayName: "SpotSave Preview",
+};
+
+const demoSpots = [
+  {
+    id: "tour-preview-spot",
+    title: "Blue Bottle Coffee",
+    place: "清澄白河",
+    placeName: "Blue Bottle Coffee",
+    area: "清澄白河",
+    addressCandidate: "東京都江東区",
+    category: "☕ カフェ",
+    url: "https://example.com/spot",
+    image: travelCollage,
+    memo: "",
+    favorite: true,
+    lat: 35.6812,
+    lng: 139.7671,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 function PhoneFrame({ children }) {
   const location = useLocation();
@@ -50,6 +75,12 @@ function App() {
   const [redirectChecking, setRedirectChecking] = useState(true);
   const [authError, setAuthError] = useState("");
   const [devInfo, setDevInfo] = useState(null);
+  const [tourPreview] = useState(
+    () => isDev && new URLSearchParams(window.location.search).get("tourPreview") === "1"
+  );
+  const effectiveUser = tourPreview ? demoUser : user;
+  const effectiveSpots = tourPreview ? demoSpots : spots;
+  const effectiveSpotsLoading = tourPreview ? false : spotsLoading;
 
   useEffect(() => {
     trackAppOpen();
@@ -206,7 +237,7 @@ function App() {
     </div>
   );
 
-  if (authLoading || redirectChecking) {
+  if (!tourPreview && (authLoading || redirectChecking)) {
     return (
       <div className="app">
         <div className="phone" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -226,11 +257,19 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<Home spots={spots} user={user} loading={spotsLoading} authError={authError} />}
+              element={
+                <Home
+                  spots={effectiveSpots}
+                  user={effectiveUser}
+                  loading={effectiveSpotsLoading}
+                  authError={authError}
+                  tourPreview={tourPreview}
+                />
+              }
             />
             <Route
               path="/add"
-              element={<AddSpot user={user} />}
+              element={<AddSpot user={effectiveUser} tourPreview={tourPreview} />}
             />
             <Route
               path="/edit/:id"
@@ -242,9 +281,9 @@ function App() {
             />
           </Routes>
         </PhoneFrame>
-        <BottomNav user={user} />
+        <BottomNav user={effectiveUser} />
         <PwaUpdatePrompt />
-        <Onboarding user={user} />
+        <Onboarding user={effectiveUser} previewMode={tourPreview} />
         {devOverlay}
       </div>
     </BrowserRouter>
