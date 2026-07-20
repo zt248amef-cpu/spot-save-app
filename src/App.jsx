@@ -83,8 +83,10 @@ function App() {
   const effectiveSpotsLoading = tourPreview ? false : spotsLoading;
 
   useEffect(() => {
-    trackAppOpen();
-  }, []);
+    if (!tourPreview) {
+      trackAppOpen();
+    }
+  }, [tourPreview]);
 
   // ---- UUID方式に戻す場合はここを削除し、const user = { uid: USER_ID }; に戻す ----
   useEffect(() => {
@@ -251,7 +253,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ScreenViewTracker />
+      {!tourPreview && <ScreenViewTracker />}
       <div className="app">
         <PhoneFrame>
           <Routes>
