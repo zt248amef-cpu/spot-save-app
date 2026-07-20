@@ -3157,6 +3157,92 @@ body {
   z-index: 5 !important;
 }
 
+.spotMapPopup .leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgb(26 37 59 / 16%);
+}
+
+.spotMapPopup .leaflet-popup-content {
+  margin: 12px;
+}
+
+.spotMapPopupContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.spotMapPopupImage {
+  width: 100%;
+  height: 112px;
+  border-radius: 11px;
+  object-fit: cover;
+}
+
+.spotMapPopupTitle {
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.spotMapPopupCategory {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: var(--radius-chip);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.spotMapPopupAddress {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.spotMapPopupAddress svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.spotMapPopupButton {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.currentLocationMarker {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(32 131 255 / 20%);
+}
+
+.currentLocationMarkerDot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #2083ff;
+  box-shadow: 0 2px 8px rgb(20 90 190 / 35%);
+}
+
 .savedToast {
   display: flex;
   align-items: center;
