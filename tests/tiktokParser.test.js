@@ -88,3 +88,43 @@ test("embedded JSON thumbnail is preferred over a video poster", () => {
   assert.match(media.thumbnailUrl, /json-cover/);
   assert.equal(media.source, "tiktok_embedded_json");
 });
+
+test("hydration POI is preferred and normalizes nested contentLocation address", () => {
+  const hydration = {
+    __DEFAULT_SCOPE__: {
+      "webapp.reflow.video.detail": {
+        itemInfo: {
+          itemStruct: {
+            poi: {
+              id: "poi-id",
+              name: "Hydration Cafe",
+              address: "Main street",
+              city: "Sample city",
+              province: "",
+            },
+            contentLocation: {
+              address: {
+                streetAddress: "Second street",
+                addressLocality: "Sample ward",
+                addressRegion: "",
+                addressCountry: "JP",
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+  const html = `
+    <script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">${JSON.stringify(hydration)}</script>
+    <a href="https://www.tiktok.com/place/weaker">Weaker generic candidate</a>
+  `;
+  const location = extractTikTokLocation(html);
+  assert.equal(location.status, "single");
+  assert.equal(location.candidates[0].placeName, "Hydration Cafe");
+  assert.match(location.candidates[0].address, /Main street/);
+  assert.match(location.candidates[0].address, /Sample ward/);
+  assert.equal(location.candidates[0].source, "tiktok_hydration_poi");
+  assert.equal(location.candidates[0].confidence, "high");
+  assert.match(location.candidates[0].placeUrl, /\/place\//);
+});

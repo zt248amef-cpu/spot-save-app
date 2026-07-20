@@ -42,6 +42,50 @@ function normalizeCandidate(candidate) {
   return normalized;
 }
 
+function normalizeAddress(...values) {
+  const parts = values
+    .flatMap((value) => {
+      if (typeof value === "string") return [value];
+      if (!value || typeof value !== "object") return [];
+      return [value.streetAddress, value.addressLocality, value.addressRegion, value.addressCountry];
+    })
+    .map(cleanText)
+    .filter(Boolean);
+  return [...new Set(parts)].join(" ");
+}
+
+function buildTikTokPlaceUrl(name, id) {
+  const cleanName = cleanText(name);
+  const cleanId = cleanText(id);
+  if (!cleanName || !cleanId) return "";
+  const slug = encodeURIComponent(cleanName.replace(/\s+/g, "-"));
+  return `https://www.tiktok.com/place/${slug}-${encodeURIComponent(cleanId)}`;
+}
+
+function extractHydrationCandidates(html) {
+  const candidates = [];
+  const hydrationPattern = /<script\b[^>]*\bid=["']__UNIVERSAL_DATA_FOR_REHYDRATION__["'][^>]*>([\s\S]*?)<\/script>/gi;
+  for (const match of html.matchAll(hydrationPattern)) {
+    try {
+      const data = JSON.parse(match[1]);
+      const itemStruct = data?.__DEFAULT_SCOPE__?.["webapp.reflow.video.detail"]?.itemInfo?.itemStruct;
+      const poi = itemStruct?.poi;
+      if (!poi || typeof poi !== "object") continue;
+      const address = normalizeAddress(poi.address, poi.city, poi.province, itemStruct?.contentLocation?.address);
+      const candidate = normalizeCandidate({
+        placeName: poi.name,
+        placeUrl: buildTikTokPlaceUrl(poi.name, poi.id),
+        address,
+        source: "tiktok_hydration_poi",
+      });
+      if (isUseful(candidate)) candidates.push(candidate);
+    } catch {
+      // Invalid hydration data falls through to the generic parsers.
+    }
+  }
+  return candidates;
+}
+
 function isUseful(candidate) {
   return Boolean(candidate.placeName || candidate.placeUrl || candidate.address || candidate.latitude != null);
 }
@@ -126,7 +170,10 @@ function dedupe(candidates) {
 }
 
 export function extractTikTokLocation(html = "") {
-  const candidates = dedupe([...extractLinkCandidates(html), ...extractJsonCandidates(html)]);
+  const hydrationCandidates = dedupe(extractHydrationCandidates(html));
+  const candidates = hydrationCandidates.length
+    ? hydrationCandidates
+    : dedupe([...extractLinkCandidates(html), ...extractJsonCandidates(html)]);
   return {
     status: candidates.length === 0 ? "unknown" : candidates.length === 1 ? "single" : "multiple",
     candidates,
