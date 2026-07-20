@@ -5,6 +5,7 @@ import finalMountain from "../assets/onboarding-final-mountain.jpg";
 import finalNight from "../assets/onboarding-final-night.jpg";
 import finalShrine from "../assets/onboarding-final-shrine.jpg";
 import finalSunset from "../assets/onboarding-final-sunset.jpg";
+import { trackOnboardingComplete, trackOnboardingStart } from "../services/analyticsService";
 import { completeOnboarding, hasCompletedOnboarding, resetOnboarding, SHOW_ONBOARDING_EVENT } from "../utils/onboarding";
 
 const steps = [
@@ -80,6 +81,7 @@ function Onboarding({ user, previewMode = false }) {
   const [targetRect, setTargetRect] = useState(emptyRect);
   const [secondaryRect, setSecondaryRect] = useState(null);
   const [rememberChoice, setRememberChoice] = useState(true);
+  const [trackOnboardingFunnel] = useState(() => !previewMode && !hasCompletedOnboarding());
 
   const step = steps[stepIndex];
 
@@ -92,6 +94,12 @@ function Onboarding({ user, previewMode = false }) {
       setVisible(true);
     }
   }, [previewMode, user]);
+
+  useEffect(() => {
+    if (visible && user && trackOnboardingFunnel) {
+      trackOnboardingStart();
+    }
+  }, [trackOnboardingFunnel, user, visible]);
 
   useEffect(() => {
     const show = () => {
@@ -200,6 +208,9 @@ function Onboarding({ user, previewMode = false }) {
 
   const finish = () => {
     if (!previewMode) {
+      if (trackOnboardingFunnel) {
+        trackOnboardingComplete();
+      }
       if (rememberChoice) {
         completeOnboarding();
       } else {

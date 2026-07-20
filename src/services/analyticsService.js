@@ -2,8 +2,8 @@ import { app } from "../firebase";
 import { detectSns, stripLeadingEmoji } from "../utils/urlUtils";
 
 let analyticsPromise = null;
-let appOpenTracked = false;
 let lastScreenPath = "";
+const trackedOnceKeys = new Set();
 
 function getFirebaseAnalytics() {
   if (typeof window === "undefined") {
@@ -30,11 +30,18 @@ function cleanParams(params = {}) {
 }
 
 export function trackEvent(eventName, params) {
+  const cleanedParams = cleanParams(params);
+
+  if (!import.meta.env.PROD) {
+    console.info(`[Analytics] ${eventName}`, cleanedParams);
+    return;
+  }
+
   getFirebaseAnalytics()
     .then((analytics) => {
       if (!analytics) return;
       return import("firebase/analytics").then(({ logEvent }) => {
-        logEvent(analytics, eventName, cleanParams(params));
+        logEvent(analytics, eventName, cleanedParams);
       });
     })
     .catch((error) => {
@@ -42,10 +49,38 @@ export function trackEvent(eventName, params) {
     });
 }
 
+export function trackEventOnce(eventName, params, dedupeKey = eventName) {
+  if (trackedOnceKeys.has(dedupeKey)) return;
+  trackedOnceKeys.add(dedupeKey);
+  trackEvent(eventName, params);
+}
+
 export function trackAppOpen() {
-  if (appOpenTracked) return;
-  appOpenTracked = true;
-  trackEvent("app_open");
+  trackEventOnce("app_open");
+}
+
+export function trackOnboardingStart() {
+  trackEventOnce("onboarding_start");
+}
+
+export function trackOnboardingComplete() {
+  trackEventOnce("onboarding_complete");
+}
+
+export function trackSaveStart() {
+  trackEvent("save_start");
+}
+
+export function trackSaveSuccess() {
+  trackEvent("save_success");
+}
+
+export function trackAiExtractSuccess() {
+  trackEvent("ai_extract_success");
+}
+
+export function trackAiExtractFailure() {
+  trackEvent("ai_extract_failure");
 }
 
 export function trackLogin(method = "google") {

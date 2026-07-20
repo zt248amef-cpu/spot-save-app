@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -23,13 +23,20 @@ import {
   describeLocationConfidence,
   describeSourceType,
 } from "../services/aiExtractionService";
-import { trackSpotSaved } from "../services/analyticsService";
+import {
+  trackAiExtractFailure,
+  trackAiExtractSuccess,
+  trackSaveStart,
+  trackSaveSuccess,
+  trackSpotSaved,
+} from "../services/analyticsService";
 import { isValidUrl, normalizeUrl, resolveExtractionStatus, stripLeadingEmoji } from "../utils/urlUtils";
 
 const aiExtractionAvailable = isAiExtractionAvailable();
 
 function AddSpot({ user, tourPreview = false }) {
   const navigate = useNavigate();
+  const saveAttemptInProgress = useRef(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
   const [url, setUrl] = useState("");
@@ -107,8 +114,10 @@ function AddSpot({ user, tourPreview = false }) {
         try {
           const extracted = await extractPlaceInfo({ caption: result.caption, description: result.description });
           if (!extracted) {
+            trackAiExtractFailure();
             setAiError("AI抽出に失敗しました。手動で入力してください");
           } else {
+            trackAiExtractSuccess();
             setAiResult(extracted);
             if (extracted.mode === "single") {
               applyExtractedInfo(extracted);
@@ -116,6 +125,7 @@ function AddSpot({ user, tourPreview = false }) {
           }
         } catch (e) {
           console.error("AI抽出に失敗しました:", e);
+          trackAiExtractFailure();
           setAiError("AI抽出に失敗しました。手動で入力してください");
         } finally {
           setAiLoading(false);
@@ -147,7 +157,7 @@ function AddSpot({ user, tourPreview = false }) {
   const handleApplyCandidate = (candidate) => applyExtractedInfo(candidate);
 
   const handleSave = async () => {
-    if (!user || saving) return;
+    if (!user || saving || saveAttemptInProgress.current) return;
     if (tourPreview) {
       navigate("/?view=list&tourPreview=1", { replace: true });
       return;
@@ -165,7 +175,9 @@ function AddSpot({ user, tourPreview = false }) {
       return;
     }
     setErrorMessage("");
+    saveAttemptInProgress.current = true;
     setSaving(true);
+    trackSaveStart();
     try {
       // 住所が分かっていれば地図検索の精度向上のためエリアと合わせて使う
       const place = [area, addressCandidate].filter((v) => v?.trim()).join(" ") || area.trim();
@@ -192,6 +204,7 @@ function AddSpot({ user, tourPreview = false }) {
         lat: resolvedLat,
         lng: resolvedLng,
       });
+      trackSaveSuccess();
       trackSpotSaved({
         url: normalizedUrl,
         category,
@@ -216,6 +229,7 @@ function AddSpot({ user, tourPreview = false }) {
       console.error("保存に失敗しました:", e);
       setErrorMessage("保存に失敗しました。もう一度お試しください");
     } finally {
+      saveAttemptInProgress.current = false;
       setSaving(false);
     }
   };
