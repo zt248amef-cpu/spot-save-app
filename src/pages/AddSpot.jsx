@@ -17,6 +17,7 @@ import {
 import { addSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
+import { mergeTikTokLocationResult } from "../services/tiktokService";
 import {
   extractPlaceInfo,
   isAiExtractionAvailable,
@@ -29,6 +30,10 @@ import {
   trackSaveStart,
   trackSaveSuccess,
   trackSpotSaved,
+  trackTikTokPlaceLinkFound,
+  trackTikTokPlaceLinkNotFound,
+  trackTikTokThumbnailFailure,
+  trackTikTokThumbnailSuccess,
 } from "../services/analyticsService";
 import { isValidUrl, normalizeUrl, resolveExtractionStatus, stripLeadingEmoji } from "../utils/urlUtils";
 
@@ -37,6 +42,7 @@ const aiExtractionAvailable = isAiExtractionAvailable();
 function AddSpot({ user, tourPreview = false }) {
   const navigate = useNavigate();
   const saveAttemptInProgress = useRef(false);
+  const fetchAttemptInProgress = useRef(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("☕ カフェ");
   const [url, setUrl] = useState("");
@@ -92,11 +98,12 @@ function AddSpot({ user, tourPreview = false }) {
 
   // URL入力から投稿情報の取得とAI抽出を1回の操作でまとめて行う
   const handleFetchAndExtract = async () => {
-    if (!url.trim() || previewLoading) return;
+    if (!url.trim() || previewLoading || fetchAttemptInProgress.current) return;
     if (!isValidUrl(url)) {
       setPreviewError("http または https で始まる正しいURLを入力してください");
       return;
     }
+    fetchAttemptInProgress.current = true;
     setPreviewLoading(true);
     setPreviewError("");
     setPreview(null);
@@ -109,18 +116,32 @@ function AddSpot({ user, tourPreview = false }) {
         return;
       }
       setPreview(result);
+      if (result.platform === "tiktok") {
+        if (result.media?.isFallback) trackTikTokThumbnailFailure();
+        else trackTikTokThumbnailSuccess();
+        if (result.location?.status === "unknown") trackTikTokPlaceLinkNotFound();
+        else trackTikTokPlaceLinkFound();
+      }
       if (aiExtractionAvailable) {
         setAiLoading(true);
         try {
-          const extracted = await extractPlaceInfo({ caption: result.caption, description: result.description });
-          if (!extracted) {
+          const extracted = await extractPlaceInfo({
+            caption: result.caption,
+            description: result.description,
+            locationCandidates: result.location?.candidates,
+          });
+          const resolved = result.platform === "tiktok"
+            ? mergeTikTokLocationResult(result.location, extracted)
+            : extracted;
+          if (!resolved) {
             trackAiExtractFailure();
             setAiError("AI抽出に失敗しました。手動で入力してください");
           } else {
-            trackAiExtractSuccess();
-            setAiResult(extracted);
-            if (extracted.mode === "single") {
-              applyExtractedInfo(extracted);
+            if (extracted) trackAiExtractSuccess();
+            else trackAiExtractFailure();
+            setAiResult(resolved);
+            if (resolved.mode === "single") {
+              applyExtractedInfo(resolved);
             }
           }
         } catch (e) {
@@ -130,11 +151,18 @@ function AddSpot({ user, tourPreview = false }) {
         } finally {
           setAiLoading(false);
         }
+      } else if (result.platform === "tiktok") {
+        const resolved = mergeTikTokLocationResult(result.location, null);
+        if (resolved) {
+          setAiResult(resolved);
+          if (resolved.mode === "single") applyExtractedInfo(resolved);
+        }
       }
     } catch (e) {
       console.error("投稿情報の取得に失敗しました:", e);
       setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
     } finally {
+      fetchAttemptInProgress.current = false;
       setPreviewLoading(false);
     }
   };

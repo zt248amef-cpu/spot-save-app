@@ -1,10 +1,10 @@
 import { detectSns, normalizeUrl } from "../utils/urlUtils";
 import { fetchYouTubeDetails } from "./youtubeService";
+import { fetchTikTokDetails } from "./tiktokService";
 
 // 認証不要・CORS対応済みの oEmbed エンドポイント（Instagramはアプリ登録が必要なため非対応）
 const OEMBED_ENDPOINTS = {
   youtube: (url) => `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
-  tiktok: (url) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
   x: (url) => `https://publish.x.com/oembed?url=${encodeURIComponent(url)}`,
 };
 
@@ -26,6 +26,10 @@ export async function fetchOEmbedPreview(url) {
   if (sns.type === "youtube") {
     const richResult = await fetchYouTubeDetails(url);
     if (richResult) return richResult;
+  }
+
+  if (sns.type === "tiktok") {
+    return fetchTikTokDetails(url);
   }
 
   const buildEndpoint = OEMBED_ENDPOINTS[sns.type];

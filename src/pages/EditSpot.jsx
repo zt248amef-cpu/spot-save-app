@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
 import { updateSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
+import { mergeTikTokLocationResult } from "../services/tiktokService";
 import {
   extractPlaceInfo,
   isAiExtractionAvailable,
@@ -28,6 +29,7 @@ const aiExtractionAvailable = isAiExtractionAvailable();
 function EditSpot({ spots }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const fetchAttemptInProgress = useRef(false);
 
   const spot = spots.find((s) => String(s.id) === id);
 
@@ -38,6 +40,7 @@ function EditSpot({ spots }) {
   const [area, setArea] = useState(spot?.area ?? spot?.place ?? "");
   const [addressCandidate, setAddressCandidate] = useState(spot?.addressCandidate ?? "");
   const [memo, setMemo] = useState(spot?.memo ?? "");
+  const [image] = useState(spot?.image ?? "");
   const [lat, setLat] = useState(spot?.lat != null ? String(spot.lat) : "");
   const [lng, setLng] = useState(spot?.lng != null ? String(spot.lng) : "");
   const [saving, setSaving] = useState(false);
@@ -80,11 +83,12 @@ function EditSpot({ spots }) {
 
   // URL入力から投稿情報の取得とAI抽出を1回の操作でまとめて行う
   const handleFetchAndExtract = async () => {
-    if (!url.trim() || previewLoading) return;
+    if (!url.trim() || previewLoading || fetchAttemptInProgress.current) return;
     if (!isValidUrl(url)) {
       setPreviewError("http または https で始まる正しいURLを入力してください");
       return;
     }
+    fetchAttemptInProgress.current = true;
     setPreviewLoading(true);
     setPreviewError("");
     setPreview(null);
@@ -100,13 +104,20 @@ function EditSpot({ spots }) {
       if (aiExtractionAvailable) {
         setAiLoading(true);
         try {
-          const extracted = await extractPlaceInfo({ caption: result.caption, description: result.description });
-          if (!extracted) {
+          const extracted = await extractPlaceInfo({
+            caption: result.caption,
+            description: result.description,
+            locationCandidates: result.location?.candidates,
+          });
+          const resolved = result.platform === "tiktok"
+            ? mergeTikTokLocationResult(result.location, extracted)
+            : extracted;
+          if (!resolved) {
             setAiError("AI抽出に失敗しました。手動で入力してください");
           } else {
-            setAiResult(extracted);
-            if (extracted.mode === "single") {
-              applyExtractedInfo(extracted);
+            setAiResult(resolved);
+            if (resolved.mode === "single") {
+              applyExtractedInfo(resolved);
             }
           }
         } catch (e) {
@@ -115,11 +126,18 @@ function EditSpot({ spots }) {
         } finally {
           setAiLoading(false);
         }
+      } else if (result.platform === "tiktok") {
+        const resolved = mergeTikTokLocationResult(result.location, null);
+        if (resolved) {
+          setAiResult(resolved);
+          if (resolved.mode === "single") applyExtractedInfo(resolved);
+        }
       }
     } catch (e) {
       console.error("投稿情報の取得に失敗しました:", e);
       setPreviewError("この投稿からは自動取得できませんでした。手動で入力してください");
     } finally {
+      fetchAttemptInProgress.current = false;
       setPreviewLoading(false);
     }
   };
@@ -166,6 +184,7 @@ function EditSpot({ spots }) {
         area,
         addressCandidate,
         extractionStatus: resolveExtractionStatus(placeName, area),
+        image: preview?.media?.isFallback ? image || preview.thumbnailUrl : preview?.thumbnailUrl || image,
         memo,
         lat: resolvedLat,
         lng: resolvedLng,

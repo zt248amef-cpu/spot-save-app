@@ -5,7 +5,7 @@ const MAX_CANDIDATES = 10;
 const MAX_GEO_QUERIES = 5;
 
 export const KNOWN_CATEGORIES = ["☕ カフェ", "🍜 グルメ", "🧖 サウナ", "❤️ デート", "✈️ 旅行"];
-export const SOURCE_TYPES = ["description", "title", "weak", "unknown"];
+export const SOURCE_TYPES = ["place_link", "description", "title", "weak", "unknown"];
 export const LOCATION_CONFIDENCE_LEVELS = ["high", "medium", "low", "unknown"];
 
 const CATEGORY_KEYWORDS = {
@@ -46,6 +46,7 @@ export function describeLocationConfidence(level) {
 }
 
 const SOURCE_TYPE_LABELS = {
+  place_link: "TikTokの場所リンク",
   description: "説明文",
   title: "タイトル",
   weak: "推測（弱い根拠）",
@@ -70,12 +71,12 @@ const SYSTEM_PROMPT =
   "{\n" +
   '  "mode": "single" | "multiple" | "unknown",\n' +
   '  "placeName": string, "area": string, "addressCandidate": string, "category": string, "evidence": string,\n' +
-  '  "sourceType": "description" | "title" | "weak" | "unknown",\n' +
+  '  "sourceType": "place_link" | "description" | "title" | "weak" | "unknown",\n' +
   '  "locationConfidence": "high" | "medium" | "low" | "unknown",\n' +
   '  "geoSearchQueries": string[],\n' +
   '  "candidates": [{\n' +
   '    "placeName": string, "area": string, "addressCandidate": string, "category": string, "reason": string, "evidence": string,\n' +
-  '    "sourceType": "description" | "title" | "weak" | "unknown",\n' +
+  '    "sourceType": "place_link" | "description" | "title" | "weak" | "unknown",\n' +
   '    "locationConfidence": "high" | "medium" | "low" | "unknown",\n' +
   '    "geoSearchQueries": string[]\n' +
   "  }],\n" +
@@ -155,10 +156,32 @@ function normalizeCandidate(entry) {
 // この関数はOpenAI呼び出しの詳細（エンドポイント・モデル・プロンプト）を知る唯一の場所。
 // 将来Cloud Functions経由に切り替える場合はこの関数の内部実装だけを差し替えればよく、
 // 戻り値の形を維持する限りUI側の変更は不要。
-export async function extractPlaceInfo({ caption, description }) {
+export async function extractPlaceInfo({ caption, description, locationCandidates = [] }) {
   if (!isAiExtractionAvailable()) return null;
 
-  const text = [caption, description].filter(Boolean).join("\n\n").slice(0, 4000).trim();
+  const locationEvidence = locationCandidates
+    .slice(0, MAX_CANDIDATES)
+    .map((candidate) =>
+      [
+        "[TikTok place/POI evidence]",
+        candidate.placeName && `placeName: ${candidate.placeName}`,
+        candidate.address && `address: ${candidate.address}`,
+        candidate.placeUrl && `placeUrl: ${candidate.placeUrl}`,
+        candidate.latitude != null && `latitude: ${candidate.latitude}`,
+        candidate.longitude != null && `longitude: ${candidate.longitude}`,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    )
+    .join("\n\n");
+  const locationPriorityInstruction = locationEvidence
+    ? "TikTokのplace/POI evidenceを最優先の根拠として扱ってください。タイトル等と矛盾する場合はsingleに自動確定せず、複数候補はmultipleにしてください。sourceTypeはplace_linkを使用してください。"
+    : "";
+  const text = [locationPriorityInstruction, locationEvidence, caption, description]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 6000)
+    .trim();
   if (!text) return null;
 
   const userContent = hasMultiPlaceHint(caption)

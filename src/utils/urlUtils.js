@@ -39,7 +39,9 @@ export function resolveExtractionStatus(placeName, area) {
 
 // スポットの画像URLをフィールド名の揺れを吸収して解決する（image / imageUrl / thumbnailUrl / thumbnail の順）
 export function resolveSpotImage(spot) {
-  return spot?.image || spot?.imageUrl || spot?.thumbnailUrl || spot?.thumbnail || "";
+  const image = spot?.image || spot?.imageUrl || spot?.thumbnailUrl || spot?.thumbnail || "";
+  if (image) return image;
+  return detectSns(spot?.url || "").type === "tiktok" ? "/tiktok-fallback.svg" : "";
 }
 
 // 保存日時を表示用の文字列に整形する

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="TikTok">
+  <rect width="800" height="1000" fill="#111217"/>
+  <g transform="translate(400 455)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="34">
+    <path d="M-20-185v300a115 115 0 1 1-88-112" stroke="#25f4ee" transform="translate(-9 8)"/>
+    <path d="M-20-185c18 88 76 139 159 143" stroke="#25f4ee" transform="translate(-9 8)"/>
+    <path d="M-20-185v300a115 115 0 1 1-88-112" stroke="#fe2c55" transform="translate(9 -8)"/>
+    <path d="M-20-185c18 88 76 139 159 143" stroke="#fe2c55" transform="translate(9 -8)"/>
+    <path d="M-20-185v300a115 115 0 1 1-88-112M-20-185c18 88 76 139 159 143" stroke="#fff"/>
+  </g>
+  <text x="400" y="790" fill="#fff" font-family="Arial, sans-serif" font-size="58" font-weight="700" text-anchor="middle">TikTok</text>
+</svg>

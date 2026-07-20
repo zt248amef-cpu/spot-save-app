@@ -83,6 +83,22 @@ export function trackAiExtractFailure() {
   trackEvent("ai_extract_failure");
 }
 
+export function trackTikTokThumbnailSuccess() {
+  trackEvent("tiktok_thumbnail_success");
+}
+
+export function trackTikTokThumbnailFailure() {
+  trackEvent("tiktok_thumbnail_failure");
+}
+
+export function trackTikTokPlaceLinkFound() {
+  trackEvent("tiktok_place_link_found");
+}
+
+export function trackTikTokPlaceLinkNotFound() {
+  trackEvent("tiktok_place_link_not_found");
+}
+
 export function trackLogin(method = "google") {
   trackEvent("login", { method });
 }

@@ -1,0 +1,72 @@
+import { extractTikTokLocation, extractTikTokPageMedia } from "./_lib/tiktokParser.js";
+
+const TIMEOUT_MS = 8000;
+const TIKTOK_HOST_PATTERN = /(^|\.)tiktok\.com$/i;
+
+function isTikTokUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && TIKTOK_HOST_PATTERN.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal, redirect: "follow" });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchOEmbed(url) {
+  const response = await fetchWithTimeout(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+  if (!response.ok) throw new Error(`oEmbed returned ${response.status}`);
+  const data = await response.json();
+  return {
+    thumbnailUrl: data.thumbnail_url || "",
+    title: data.title || "",
+    description: "",
+    author: data.author_name || "",
+    source: "tiktok_oembed",
+  };
+}
+
+async function fetchPage(url) {
+  const response = await fetchWithTimeout(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+      accept: "text/html,application/xhtml+xml",
+    },
+  });
+  if (!response.ok) throw new Error(`TikTok page returned ${response.status}`);
+  const html = await response.text();
+  return { media: extractTikTokPageMedia(html), location: extractTikTokLocation(html) };
+}
+
+function mergeMedia(oembed, page) {
+  return {
+    thumbnailUrl: oembed?.thumbnailUrl || page?.thumbnailUrl || "",
+    title: oembed?.title || page?.title || "",
+    description: page?.description || oembed?.description || "",
+    author: oembed?.author || "",
+    source: oembed?.thumbnailUrl ? oembed.source : page?.source || "tiktok_unavailable",
+  };
+}
+
+export default async function handler(request, response) {
+  response.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+  if (request.method !== "GET") return response.status(405).json({ error: "method_not_allowed" });
+  const url = Array.isArray(request.query?.url) ? request.query.url[0] : request.query?.url;
+  if (!isTikTokUrl(url)) return response.status(400).json({ error: "invalid_tiktok_url" });
+
+  const [oembedResult, pageResult] = await Promise.allSettled([fetchOEmbed(url), fetchPage(url)]);
+  const oembed = oembedResult.status === "fulfilled" ? oembedResult.value : null;
+  const page = pageResult.status === "fulfilled" ? pageResult.value : null;
+  return response.status(200).json({
+    media: mergeMedia(oembed, page?.media),
+    location: page?.location || { status: "unknown", candidates: [] },
+  });
+}
