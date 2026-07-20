@@ -9,7 +9,7 @@ export function locationToExtractionResult(location) {
     addressCandidate: candidate.address || "",
     category: "",
     evidence: candidate.placeName || candidate.address || "",
-    sourceType: "place_link",
+    sourceType: candidate.source === "tiktok_caption_marker" ? "description" : "place_link",
     locationConfidence: candidate.confidence || "unknown",
     geoSearchQueries: [candidate.placeName, candidate.address].filter(Boolean),
     placeUrl: candidate.placeUrl || "",

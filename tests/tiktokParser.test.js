@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractTikTokLocation, extractTikTokPageMedia } from "../api/_lib/tiktokParser.js";
+import {
+  extractTikTokLocation,
+  extractTikTokMarkedPlaceCandidates,
+  extractTikTokPageMedia,
+} from "../api/_lib/tiktokParser.js";
 import { mergeTikTokLocationResult } from "../src/services/tiktokService.js";
 
 const placeLinkHtml = `
@@ -87,6 +91,46 @@ test("embedded JSON thumbnail is preferred over a video poster", () => {
   const media = extractTikTokPageMedia(html);
   assert.match(media.thumbnailUrl, /json-cover/);
   assert.equal(media.source, "tiktok_embedded_json");
+});
+
+test("TikTok caption markers create strong place candidates", () => {
+  const cases = [
+    "おすすめです。\u{1F4CD}Sample Cafe #cafe",
+    "\u{1F4CC}Sample Cafe\n営業時間は投稿を確認",
+    "Location: Sample Cafe #travel",
+    "Place：Sample Cafe",
+  ];
+  for (const caption of cases) {
+    const candidate = extractTikTokMarkedPlaceCandidates(caption)[0];
+    assert.equal(candidate.placeName, "Sample Cafe");
+    assert.equal(candidate.source, "tiktok_caption_marker");
+    assert.equal(candidate.confidence, "high");
+  }
+});
+
+test("caption marker is preferred over a different hydration POI", () => {
+  const hydration = {
+    __DEFAULT_SCOPE__: {
+      "webapp.reflow.video.detail": {
+        itemInfo: {
+          itemStruct: {
+            desc: "おすすめ。\u{1F4CD}Caption Cafe #travel",
+            poi: { id: "poi-id", name: "Different POI", address: "Sample address" },
+          },
+        },
+      },
+    },
+  };
+  const html = `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">${JSON.stringify(hydration)}</script>`;
+  const location = extractTikTokLocation(html);
+  assert.equal(location.status, "single");
+  assert.equal(location.candidates[0].placeName, "Caption Cafe");
+  assert.equal(location.candidates[0].source, "tiktok_caption_marker");
+});
+
+test("multiple marked places remain multiple", () => {
+  const candidates = extractTikTokMarkedPlaceCandidates("\u{1F4CD}First Cafe #one \u{1F4CC}Second Cafe #two");
+  assert.equal(candidates.length, 2);
 });
 
 test("hydration POI is preferred and normalizes nested contentLocation address", () => {

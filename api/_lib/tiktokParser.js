@@ -23,10 +23,28 @@ function asCoordinate(value, min, max) {
 }
 
 function confidenceFor(candidate) {
+  if (candidate.source === "tiktok_caption_marker" && candidate.placeName) return "high";
   if (candidate.placeUrl && candidate.placeName) return "high";
   if (candidate.address || candidate.latitude != null) return "high";
   if (candidate.placeUrl || candidate.placeName) return "medium";
   return "low";
+}
+
+export function extractTikTokMarkedPlaceCandidates(text = "") {
+  const candidates = [];
+  const markerPattern = /\u{1F4CD}|\u{1F4CC}|(?:Location|Place)\s*[:：]/giu;
+  const markers = [...text.matchAll(markerPattern)];
+  for (const [index, marker] of markers.entries()) {
+    const start = marker.index + marker[0].length;
+    const boundaries = [text.indexOf("#", start), text.indexOf("\n", start), text.indexOf("\r", start), markers[index + 1]?.index]
+      .filter((value) => Number.isInteger(value) && value >= start);
+    const end = boundaries.length ? Math.min(...boundaries) : text.length;
+    const placeName = cleanText(text.slice(start, end)).replace(/^[\s:：|｜・•-]+|[\s|｜・•-]+$/gu, "");
+    if (!placeName || placeName.length > 100 || /^https?:\/\//i.test(placeName)) continue;
+    const candidate = normalizeCandidate({ placeName, source: "tiktok_caption_marker" });
+    if (isUseful(candidate)) candidates.push(candidate);
+  }
+  return dedupe(candidates);
 }
 
 function normalizeCandidate(candidate) {
@@ -81,6 +99,21 @@ function extractHydrationCandidates(html) {
       if (isUseful(candidate)) candidates.push(candidate);
     } catch {
       // Invalid hydration data falls through to the generic parsers.
+    }
+  }
+  return candidates;
+}
+
+function extractHydrationCaptionCandidates(html) {
+  const candidates = [];
+  const hydrationPattern = /<script\b[^>]*\bid=["']__UNIVERSAL_DATA_FOR_REHYDRATION__["'][^>]*>([\s\S]*?)<\/script>/gi;
+  for (const match of html.matchAll(hydrationPattern)) {
+    try {
+      const data = JSON.parse(match[1]);
+      const description = data?.__DEFAULT_SCOPE__?.["webapp.reflow.video.detail"]?.itemInfo?.itemStruct?.desc;
+      candidates.push(...extractTikTokMarkedPlaceCandidates(description));
+    } catch {
+      // Invalid hydration data falls through to the other parsers.
     }
   }
   return candidates;
@@ -170,6 +203,13 @@ function dedupe(candidates) {
 }
 
 export function extractTikTokLocation(html = "") {
+  const captionCandidates = dedupe(extractHydrationCaptionCandidates(html));
+  if (captionCandidates.length) {
+    return {
+      status: captionCandidates.length === 1 ? "single" : "multiple",
+      candidates: captionCandidates,
+    };
+  }
   const hydrationCandidates = dedupe(extractHydrationCandidates(html));
   const candidates = hydrationCandidates.length
     ? hydrationCandidates
