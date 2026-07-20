@@ -1322,6 +1322,141 @@ body {
   margin-top: 0;
 }
 
+.lineBrowserScreen {
+  margin-top: 28px;
+  padding: 28px 22px 24px;
+  border: 1px solid rgba(116, 86, 214, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fbfaff 0%, #fff 100%);
+  box-shadow: 0 16px 40px rgba(52, 39, 91, 0.08);
+  text-align: center;
+}
+
+.lineBrowserIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  color: var(--accent);
+  background: rgba(116, 86, 214, 0.1);
+}
+
+.lineBrowserIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.lineBrowserScreen h2 {
+  margin: 18px 0 10px;
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.lineBrowserLead {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.lineBrowserHelpButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 22px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(116, 86, 214, 0.2);
+}
+
+.lineBrowserHelpButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lineBrowserHelpButton svg:last-child {
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+
+.lineBrowserHelpButton svg:last-child.isOpen {
+  transform: rotate(180deg);
+}
+
+.lineBrowserHelpButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.lineBrowserInstructions {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #f7f5fc;
+  text-align: left;
+}
+
+.lineBrowserStep {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.lineBrowserStep > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(52, 39, 91, 0.08);
+}
+
+.lineBrowserStep p {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.lineBrowserStep p svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 3px;
+  vertical-align: middle;
+}
+
+.lineBrowserStep strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.lineBrowserStep p + p {
+  margin-top: 10px;
+}
+
 .userBar {
   display: flex;
   align-items: center;

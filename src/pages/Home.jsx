@@ -20,12 +20,14 @@ import {
 } from "lucide-react";
 import { deleteSpot, toggleFavorite } from "../services/spotService";
 import MapView from "../components/MapView";
+import LineBrowserNotice from "../components/LineBrowserNotice";
 import {
   signInWithGoogle,
   signOutUser,
   isInAppBrowser,
   IN_APP_BROWSER_ERROR_CODE,
 } from "../services/authService";
+import { isLineInAppBrowser } from "../utils/browserDetection";
 import { trackLogin } from "../services/analyticsService";
 import { consumeSavedScrollY } from "../utils/externalNavigation";
 import { stripLeadingEmoji } from "../utils/urlUtils";
@@ -198,6 +200,7 @@ function Home({ spots, user, loading, authError, tourPreview = false }) {
 
   // ---- UUID方式に戻す場合はここをコメントアウト ----
   if (!user) {
+    const lineBrowser = isLineInAppBrowser(navigator.userAgent);
     const inAppBrowser = isInAppBrowser();
     return (
       <>
@@ -217,7 +220,9 @@ function Home({ spots, user, loading, authError, tourPreview = false }) {
           </p>
         )}
 
-        {inAppBrowser ? (
+        {lineBrowser ? (
+          <LineBrowserNotice />
+        ) : inAppBrowser ? (
           <div className="inAppBrowserNotice fadeIn">
             <p className="loginHint">
               <AlertCircle aria-hidden="true" />
