@@ -15,7 +15,9 @@ import {
 import { updateSpot } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
-import { mergeTikTokLocationResult } from "../services/tiktokService";
+import { mergeTikTokLocationResult, TIKTOK_FALLBACK_IMAGE } from "../services/tiktokService";
+import { persistTikTokThumbnail } from "../services/tiktokThumbnailService";
+import { isTikTokCdnUrl } from "../utils/tiktokCdn";
 import {
   extractPlaceInfo,
   isAiExtractionAvailable,
@@ -175,6 +177,22 @@ function EditSpot({ spots }) {
         const geo = await geocodePlace(place);
         if (geo) { resolvedLat = geo.lat; resolvedLng = geo.lng; }
       }
+      const candidateImage = preview?.media?.isFallback
+        ? image || preview.thumbnailUrl
+        : preview?.thumbnailUrl || image;
+
+      // TikTokのサムネイルは署名付きURLで数時間〜数日後にTikTok側で失効するため、
+      // そのままFirestoreへ保存せずFirebase Storageへコピーして恒久URLに差し替える。
+      let resolvedImage = candidateImage;
+      if (isTikTokCdnUrl(candidateImage)) {
+        const permanentUrl = await persistTikTokThumbnail({
+          userId: spot.userId,
+          spotId: spot.id,
+          thumbnailUrl: candidateImage,
+        });
+        resolvedImage = permanentUrl || TIKTOK_FALLBACK_IMAGE;
+      }
+
       await updateSpot(spot.id, {
         title: name,
         place,
@@ -184,7 +202,7 @@ function EditSpot({ spots }) {
         area,
         addressCandidate,
         extractionStatus: resolveExtractionStatus(placeName, area),
-        image: preview?.media?.isFallback ? image || preview.thumbnailUrl : preview?.thumbnailUrl || image,
+        image: resolvedImage,
         memo,
         lat: resolvedLat,
         lng: resolvedLng,

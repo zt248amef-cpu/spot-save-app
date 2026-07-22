@@ -17,6 +17,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import { detectSns, normalizeUrl, resolveSpotImage, formatSavedAt, stripLeadingEmoji } from "../utils/urlUtils";
+import { TIKTOK_FALLBACK_IMAGE } from "../services/tiktokService";
 import { isInteractiveTarget } from "../utils/domUtils";
 import {
   openExternalUrl,
@@ -114,6 +115,18 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
   const displayArea = spot.area?.trim() || spot.place;
   const memoText = spot.memo?.trim();
   const displayImage = resolveSpotImage(spot);
+
+  // 保存済みのTikTokサムネイルは(移行前の過去データ等で)失効しているとTikTok側が
+  // 403/404を返すことがある。その場合だけ壊れた画像アイコンではなくフォールバック画像に
+  // 1回だけ切り替える。Reactのstateではなく失敗したimg要素自身にフラグを立てて判定するため、
+  // 親の再レンダリングでdisplayImageが再計算されても上書きされず、フォールバック画像自体が
+  // 失敗した場合もdata属性のガードにより2回目以降は何もしない(無限ループしない)。
+  // TikTok以外は早期returnし、従来通り(ImageOffプレースホルダーや標準の壊れた画像表示)を維持する。
+  const handleImageError = (e) => {
+    if (sns.type !== "tiktok" || e.currentTarget.dataset.tiktokFallbackApplied) return;
+    e.currentTarget.dataset.tiktokFallbackApplied = "true";
+    e.currentTarget.src = TIKTOK_FALLBACK_IMAGE;
+  };
 
   // カード全体タップでは詳細表示を開く。ただし、直前の操作がスワイプの場合や
   // メニュー/スワイプ操作ボタンが開いている場合は、それらを閉じるだけにする
@@ -394,7 +407,7 @@ function SpotCard({ spot, onDelete, onToggleFavorite, highlighted, isSwipeOpen, 
         onClick={handleCardClick}
       >
       {displayImage ? (
-        <img src={displayImage} alt={displayTitle} draggable="false" />
+        <img src={displayImage} alt={displayTitle} draggable="false" onError={handleImageError} />
       ) : (
         <div className="cardThumbnailPlaceholder" aria-hidden="true">
           <ImageOff size={28} strokeWidth={1.5} />

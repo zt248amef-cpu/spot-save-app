@@ -177,13 +177,14 @@ function Home({ spots, user, loading, authError, tourPreview = false }) {
       await signInWithGoogle();
       trackLogin();
     } catch (e) {
-      console.error("ログインに失敗しました:", e.code);
+      console.error("ログインに失敗しました:", e.code, e.message);
       if (e.code === IN_APP_BROWSER_ERROR_CODE) {
         setLoginError(
           "このブラウザではGoogleログインできません。右上メニューからSafariまたはChromeで開いてください。"
         );
       } else {
-        setLoginError("ログインに失敗しました。もう一度お試しください。");
+        const detail = [e.code, e.message].filter(Boolean).join(" / ");
+        setLoginError(`ログインに失敗しました。もう一度お試しください。${detail ? `\n(${detail})` : ""}`);
       }
     }
   };

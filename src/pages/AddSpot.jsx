@@ -14,10 +14,12 @@ import {
   Camera,
   ChevronDown,
 } from "lucide-react";
-import { addSpot } from "../services/spotService";
+import { addSpot, createSpotId } from "../services/spotService";
 import { geocodePlace } from "../services/geocodeService";
 import { fetchOEmbedPreview } from "../services/oembedService";
-import { mergeTikTokLocationResult } from "../services/tiktokService";
+import { mergeTikTokLocationResult, TIKTOK_FALLBACK_IMAGE } from "../services/tiktokService";
+import { persistTikTokThumbnail } from "../services/tiktokThumbnailService";
+import { isTikTokCdnUrl } from "../utils/tiktokCdn";
 import {
   extractPlaceInfo,
   isAiExtractionAvailable,
@@ -218,20 +220,40 @@ function AddSpot({ user, tourPreview = false }) {
       // クイック保存・通常保存のどちらでも、手動設定がなければ投稿のサムネイルを画像として使う
       const finalImage = image || preview?.thumbnailUrl || "";
       const normalizedUrl = normalizeUrl(url);
-      const newSpotId = await addSpot(user.uid, {
-        title: name,
-        place,
-        category,
-        url: normalizedUrl,
-        placeName,
-        area,
-        addressCandidate,
-        extractionStatus: resolveExtractionStatus(placeName, area),
-        image: finalImage,
-        memo,
-        lat: resolvedLat,
-        lng: resolvedLng,
-      });
+
+      // TikTokのサムネイルは署名付きURLで数時間〜数日後にTikTok側で失効するため、
+      // そのままFirestoreへ保存せずFirebase Storageへコピーして恒久URLに差し替える。
+      // Storageの保存パスをドキュメントIDに合わせるため、保存前にIDを確定させる。
+      let resolvedImage = finalImage;
+      let presetSpotId = null;
+      if (isTikTokCdnUrl(finalImage)) {
+        presetSpotId = createSpotId();
+        const permanentUrl = await persistTikTokThumbnail({
+          userId: user.uid,
+          spotId: presetSpotId,
+          thumbnailUrl: finalImage,
+        });
+        resolvedImage = permanentUrl || TIKTOK_FALLBACK_IMAGE;
+      }
+
+      const newSpotId = await addSpot(
+        user.uid,
+        {
+          title: name,
+          place,
+          category,
+          url: normalizedUrl,
+          placeName,
+          area,
+          addressCandidate,
+          extractionStatus: resolveExtractionStatus(placeName, area),
+          image: resolvedImage,
+          memo,
+          lat: resolvedLat,
+          lng: resolvedLng,
+        },
+        presetSpotId ? { id: presetSpotId } : undefined
+      );
       trackSaveSuccess();
       trackSpotSaved({
         url: normalizedUrl,

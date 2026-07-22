@@ -2,7 +2,7 @@ import {
   collection,
   query,
   where,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -12,6 +12,12 @@ import {
 import { db } from "../firebase";
 
 const spotsCol = collection(db, "spots");
+
+// Storageへの画像保存など、ドキュメント作成前にIDを確定させたい処理のために
+// Firestoreの自動採番IDだけを事前発行する（この時点ではまだ書き込みしない）。
+export function createSpotId() {
+  return doc(spotsCol).id;
+}
 
 // ログイン中ユーザーの spots をリアルタイム購読する
 export function subscribeToSpots(userId, callback, onError) {
@@ -33,9 +39,12 @@ export function subscribeToSpots(userId, callback, onError) {
   );
 }
 
-// スポットを追加する（保存演出のため、新規ドキュメントのIDを返す）
-export async function addSpot(userId, data) {
-  const docRef = await addDoc(spotsCol, {
+// スポットを追加する（保存演出のため、新規ドキュメントのIDを返す）。
+// options.id を渡すと、そのIDでドキュメントを作成する
+// （Storageの保存パスとFirestoreのドキュメントIDを一致させたい場合に使う）。
+export async function addSpot(userId, data, { id } = {}) {
+  const docRef = id ? doc(spotsCol, id) : doc(spotsCol);
+  await setDoc(docRef, {
     ...data,
     userId,
     favorite: false,
