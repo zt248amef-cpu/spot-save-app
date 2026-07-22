@@ -8,16 +8,14 @@ SpotSaveの未着手・進行中タスクの優先度別一覧。プロジェク
 
 ## P0: 致命的不具合
 
-- **TikTokサムネイルの「壊れた画像」表示**（対応中・検証待ち）
-  TikTok CDNの署名付きサムネイルURLをFirestoreへ直接保存していたため、数時間〜数日で期限切れとなり一覧画面で壊れた画像アイコンが表示される問題。
-  新規保存分はFirebase Storageへコピーして恒久URL化する実装が完了し、Preview（`spot-save-app-review.vercel.app`）でGoogleログイン・TikTokフォールバック表示の実機確認待ち。確認後にcommit・main push・Production反映を行う。
+現在、該当する項目はありません。
+
+> 2026-07-22: 「TikTokサムネイルの『壊れた画像』表示」はFirebase Storageへの恒久化対応が完了し、Production実機確認（Googleログイン・新規TikTok保存・保存直後の表示・再読み込み後の表示・過去データのフォールバック表示・他SNSへの影響なし）も完了したため、このバックログから削除。
 
 ---
 
 ## P1: 公開前必須
 
-- 上記TikTokサムネイル恒久化のcommit・main push・Production反映（P0の後続作業）
-- 過去保存済み（Storage移行前）TikTokサムネイルの表示保護の最終確認（現状は`SpotCard`の`onError`フォールバックで見た目のみ保護。恒久化はされていない）
 - ジオコーディングをNominatim→Geoapify/LocationIQへ切り替え（`docs/url-precision-design.md`参照）。クレカ不要で無料枠が大きく、レート制限緩和・精度向上が見込める即効性の高い改善
 
 ---
@@ -33,7 +31,8 @@ SpotSaveの未着手・進行中タスクの優先度別一覧。プロジェク
 
 ## P3: 品質改善
 
-- `SpotDetail.jsx` / `MapView.jsx`にもTikTokサムネイルの`onError`フォールバックを展開（現状`SpotCard.jsx`のみ対応）
+- `SpotDetail.jsx`へのTikTok画像`onError`フォールバック展開（現状`SpotCard.jsx`のみ対応）
+- `MapView.jsx`へのTikTok画像`onError`フォールバック展開（現状`SpotCard.jsx`のみ対応）
 - テストのCI組み込み（現状ローカルで`node --test`を手動実行するのみ。GitHub Actionsは`npm run build`のみ）
 - バンドルサイズの最適化（build時に500KB超のchunk警告あり。動的import等によるコード分割を検討）
 - Firestoreの`image`フィールドに混在する複数形式（TikTok CDN URL／Storage URL／data URL／YouTube URL）の将来的な整理
@@ -42,6 +41,8 @@ SpotSaveの未着手・進行中タスクの優先度別一覧。プロジェク
 
 ## P4: 将来機能
 
+- 過去保存済み（公開前の開発データのみが対象）TikTokサムネイルの自動バックフィル
+  現時点では本物サムネイルの自動復元は実装しない方針。期限切れ時は引き続き`SpotCard`の`onError`フォールバック画像を表示する。着手する場合はStorageへの一括コピー＋Firestoreの`image`一括更新スクリプトが必要。
 - Firebase Cloud Functionsの導入（LLM/外部APIキーのバックエンド移行。`docs/url-precision-design.md`の前提）
 - URL高精度解析パイプライン一式（YouTube Data API・TikTok/Instagram oEmbedのバックエンド化、AI解析ステップ）
 - 動画/音声のVision解析（Whisper文字起こし・画面テロップOCR。`docs/video-analysis-design.md`参照）
