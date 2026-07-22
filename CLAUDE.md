@@ -13,6 +13,12 @@
 - Vite の環境変数は `VITE_` プレフィックスを使用する。
 - 変更後は `npm run build` でビルド確認を行う。
 
+## Preview運用
+- 動作確認用のPreview Deployは、必ず固定ドメイン `spot-save-app-review.vercel.app` を経由して確認する。
+- 新しいPreview Deployを作成したら、`vercel alias set <新しいdeployment URL> spot-save-app-review.vercel.app` でこの固定ドメインを最新のPreviewへ付け替える。
+- Firebase Authentication の Authorized domains には `spot-save-app-review.vercel.app` を登録済み。
+- 毎回ランダムに発行されるVercelのPreview URL（`spot-save-xxxxx-....vercel.app`）ではGoogleログインが `auth/unauthorized-domain` で失敗するため、動作確認には使用しない。
+
 ## 主要ディレクトリ
 - `src/components/` : 再利用 UI コンポーネント
 - `src/pages/` : 画面単位のコンポーネント
