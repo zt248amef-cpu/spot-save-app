@@ -37,6 +37,10 @@ npm run dev
 このリポジトリには Claude Code 向けの補助設定を追加しています。
 
 - [CLAUDE.md](CLAUDE.md) : プロジェクト固有の開発コンテキスト
+- [AGENTS.md](AGENTS.md) : 開発ルール・作業手順（権限・確認事項・検証手順）
+- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) : プロジェクトの現在地（構成・進捗・技術的な注意点）
+- [BACKLOG.md](BACKLOG.md) : 優先度別の未着手・進行中タスク一覧
+- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) : リリース前の確認チェックリスト
 - [.claude/settings.json](.claude/settings.json) : 代表的なコマンド許可設定
 - [.github/workflows/ci.yml](.github/workflows/ci.yml) : React/Vite のビルド確認を行う GitHub Actions
 

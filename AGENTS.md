@@ -7,10 +7,12 @@ It applies to the entire repository unless a more specific `AGENTS.md` exists in
 
 SpotSave is a React + Vite + Firebase application for saving and managing places found on services such as TikTok, Instagram, and YouTube.
 
-- Manage places with URL, shop/place name, address, category, and image data.
-- Persist application data with Firebase Firestore.
-- Use React Router for page navigation.
-- Use Leaflet for map display.
+## Related Documents
+
+This file covers *how* to work in this repository (permissions, workflow, verification). It intentionally does not duplicate project knowledge or task lists:
+
+- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md): what the project is — stack, architecture, current status, known caveats. Read this for project knowledge.
+- [BACKLOG.md](BACKLOG.md): prioritized list of known bugs, planned work, and future ideas. Check this before starting new work.
 
 ## Roles
 
